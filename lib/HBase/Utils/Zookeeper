@@ -16,9 +16,9 @@ sub locateMetaRegionServer {
 
     die "Bad node" unless $magic == 255;
 
-    $server = HBase::Client::Proto::MetaRegionServer->decode( substr $blob, length('PBUF') + $id_length );
+    my $server = HBase::Client::Proto::MetaRegionServer->decode( substr $blob, length('PBUF') + $id_length );
 
-    warn "Not sure we support version" unless $server->get_rpc_version() == 0;
+    warn "Not sure we support the version" unless $server->get_rpc_version() == 0;
 
     die "Meta Server not ready" unless $server->get_state() == 3;
 
