@@ -32,7 +32,7 @@ sub new {
 
     my $self = bless {
             socket         => $socket,
-            on_data        => $args{on_data},
+            on_read        => $args{on_read},
             write_queue    => [],
             write_progress => 0,
         }, $class;
@@ -152,43 +152,10 @@ sub _can_write {
 
 sub write {
 
-    # TODO return a promise
-
     my ($self, $buffer_ref, $cb) = @_;
 
     $self->_watch_can_write() if push( $self->{write_queue}, { buffer_ref => $buffer_ref, cb => $cb } ) == 1;
 
 }
-
-sub _say_hello {
-
-    my ( $self )= @_;
-
-    {
-        local $\ if defined $\;
-
-        print $self->{socket}, pack ('a*CC', 'HBas', 0, 80);
-    }
-
-    my $ch = HBase::Client::Proto::ConnectionHeader->new;
-
-    $ch->set_service_name("ClientService");
-
-    $self->send_message( $ch );
-
-}
-
-sub send_message {
-
-    my ( $self, $message )= @_;
-
-    local $\ if defined $\;
-
-    my $buf = $message->encode;
-
-    syswrite($self->{socket}, pack ('Na*', bytes::length $buf, $buf ));
-
-}
-
 
 1;
