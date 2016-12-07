@@ -1,26 +1,27 @@
-package HBase::Client::Connection;
+package HBase::Client::RPC;
 
 use v5.14;
 use warnings;
 
-use HBase::Client::Connection;
 use HBase::Client::Proto::Loader;
-use HBase::Client::Proto::Utils;
-use JSON::XS;
-use Promises qw( deferred );
+use HBase::Client::Proto::Utils qw( read_varint encode_varint );
 
-my $JSON = JSON->new->utf8(1)->canonical(1)->convert_blessed(1);
+use Promises qw( deferred );
 
 sub new {
 
     my ($class, %args)= @_;
 
+    my $connection = $args{connection};
+
     my $self = bless {
             call_count  => 0,
-            connection  => $args{connection},
-            read_buffer => '',
             calls       => {},
+            connection  => $connection,
+            read_buffer => '',
         }, $class;
+
+    $connection->on_read( sub { $self->_on_read( @_ ) } );
 
     return $self;
 
@@ -28,15 +29,35 @@ sub new {
 
 sub call {
 
-    my ( $self, $call ) = @_;
+    my ( $self, $method, $param ) = @_;
 
-    $self->{calls}->{$self->{call_count}++} = {
+    my $deferred = deferred;
 
-            deferred => deferred,
+    my $call_id = $self->{call_count}++;
+
+    $self->{calls}->{$call_id} = {
+
+            deferred => $deferred,
+
+            method   => $method,
 
         };
 
+    my @messages = ( HBase::Client::Proto::RequestHeader->new( {
 
+            call_id         => $call_id,
+
+            method_name     => $method->{name},
+
+            request_param   => $param ? 1 : 0;
+
+        } ) );
+
+    push ( @messages, $param ) if $param;
+
+    $self->_write_as_frame( $self->_pack_delimited( @messages ) ) );
+
+    return $defined->promise();
 
 }
 
@@ -46,13 +67,15 @@ sub _handshake {
 
     my $greeting = pack ('a*CC', 'HBas', 0, 80); # preamble
 
-    my $connection_header = HBase::Client::Proto::ConnectionHeader->new;
+    my $connection_header = HBase::Client::Proto::ConnectionHeader->new( {
 
-    $connection_header->set_service_name("ClientService");
+            service_name => 'ClientService',
+
+        } );
 
     # $connection_header->set_user_info();TODO
 
-    $greeting .= $self->_frame_data( $connection_header->encode );
+    $greeting .= $self->_make_frame( $connection_header->encode );
 
     $self->{connection}->write( $greeting, sub { $self->_connected() } );
 
@@ -64,17 +87,47 @@ sub _connected {
 
 }
 
+sub _pack_delimited {
+
+    my ( $self, @messages ) = @_;
+
+    return $self->_join_delimited( [ map { defined $_ ? $_->encode : () } @messages ] );
+
+}
+
+sub _join_delimited {
+
+    my ( $self, $pieces ) = @_;
+
+    return join '', map { ( encode_varint( length $_ ), $_ ) } @$pieces;
+
+}
+
+sub _write_as_frame {
+
+    $_[0]->{connection}->write( $_[0]->_make_frame( $_[1] ) );
+
+}
+
+sub _make_frame {
+
+    return pack ('Na*', length $_[1], $_[1]);
+
+}
+
 sub _on_read {
 
     my ( $self, $data ) = @_;
 
     my $self->{read_buffer} .= $data;
 
-    while (defined (my $frame = $self->_read_frame()){
+    while (defined (my $data = $self->_try_read_framed()){
 
-        my $header = HBase::Client::Proto::ResponseHeader->decode( substr( $self->{read_buffer}, 0, HBase::Client::Proto::Utils::read_varint( $self->{read_buffer} ), '' ) );
+        my ($header_enc, $response_enc, $rest_enc) = $self->_split_delimited( $data );
 
-        if ( $header->has_call_id() && my $call = delete $self->{calls}->{ $header->get_call_id() } ){
+        my $header = HBase::Client::Proto::ResponseHeader->decode( $header_enc );
+
+        if ( $header->has_call_id() and my $call = delete $self->{calls}->{ $header->get_call_id() } ){
 
             if ( $header->has_exception() ){
 
@@ -82,7 +135,7 @@ sub _on_read {
 
             } else {
 
-                $call->{deferred}->resolve( $frame );
+                $call->{deferred}->resolve( $response_enc );
 
             }
 
@@ -98,20 +151,42 @@ sub _on_read {
 
 }
 
-sub _read_frame {
+sub _split_delimited {
 
-    $_[0]->{read_await} = unpack( 'N', substr( $_[0]->{read_buffer}, 0, 4, '' ) )
-        if !defined $_[0]->{read_await} && length $_[0]->{read_buffer} >= 4;
+    my ( $self, $data ) = @_;
 
-    return defined $_[0]->{read_await} && length $_[0]->{read_buffer} >= $_[0]->{read_await}
-        ? substr( $_[0]->{read_buffer}, 0, delete $_[0]->{read_await}, '' )
+    my @pieces;
+
+    push @pieces, substr( $data, 0, read_varint( $data ), '' ) while length $data;
+
+    return @pieces;
+}
+
+sub _try_read_framed {
+
+    $_[0]->{frame_length} = $_[0]->_try_read_int() if !defined $_[0]->{frame_length};
+
+    return defined $_[0]->{frame_length} && $_[0]->_can_read_bytes( $_[0]->{frame_length} )
+        ? $_[0]->_read_bytes( delete $_[0]->{frame_length} )
         : undef;
 
 }
 
-sub _frame_data {
+sub _try_read_int {
 
-    return pack ('Na*', length $_[1], $_[1]);
+    return $_[0]->_can_read_bytes(4) ? unpack( 'N', $_[0]->_read_bytes(4)) : undef;
+
+}
+
+sub _read_bytes {
+
+    return substr( $_[0]->{read_buffer}, 0, $_[1], '' );
+
+}
+
+sub _can_read_bytes {
+
+     return length $_[0]->{read_buffer} >= $_[1];
 
 }
 

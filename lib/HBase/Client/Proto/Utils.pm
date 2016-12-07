@@ -3,6 +3,9 @@ package HBase::Client::Proto::Utils;
 use strict;
 use warnings;
 
+use Exporter 'import';
+our @EXPORT= ('read_varint', 'encode_varint');
+
 sub read_varint {
 
     my ( $buf_ref, $advance ) = @_;
@@ -34,6 +37,26 @@ sub read_varint {
     substr $$buf_ref, 0, $cnt, '' if $advance;
 
     return $v;
+
+}
+
+sub encode_varint {
+
+    my ( $v ) = @_;
+
+    my $r = '';
+
+    while ( $v >= 0x80 ){
+
+        $r .= pack ( "C", $v & 0x7F | 0x80);
+
+        $v >>= 7;
+
+    }
+
+    $r .= pack ( "C", $v );
+
+    return $r;
 
 }
 
