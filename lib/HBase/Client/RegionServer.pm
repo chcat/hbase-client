@@ -13,11 +13,9 @@ sub new {
 
     my ($class, %args) = @_;
 
-    my $rpc = HBase::Client::RPC->new( HBase::Client::Connection->new( $args{connection} ) );
-
     my $self = bless {
 
-            rpc     => $rpc,
+            rpc     => $args{rpc},
 
         }, $class;
 

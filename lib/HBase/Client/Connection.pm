@@ -114,7 +114,7 @@ sub _can_write {
 
         my ($buffer_ref, $cb) = @{$queue->[0]}{ qw ( buffer_ref cb ) };
 
-        my $to_write = length $$buffer_ref - $self->{write_progress};
+        my $to_write = (length $$buffer_ref) - $self->{write_progress};
 
         my $written = syswrite( $self->{socket}, $$buffer_ref, $to_write );
 
@@ -126,7 +126,7 @@ sub _can_write {
 
                 shift $queue;
 
-                $cb->();
+                $cb->() if $cb;
 
             } else {
 

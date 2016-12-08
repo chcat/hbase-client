@@ -105,7 +105,7 @@ sub _join_delimited {
 
 sub _write_as_frame {
 
-    $_[0]->{connection}->write( $_[0]->_make_frame( $_[1] ) );
+    $_[0]->{connection}->write( undef, $_[0]->_make_frame( $_[1] ) );
 
 }
 
