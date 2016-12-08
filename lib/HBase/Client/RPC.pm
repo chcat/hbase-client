@@ -49,15 +49,15 @@ sub call {
 
             method_name     => $method->{name},
 
-            request_param   => $param ? 1 : 0;
+            request_param   => $param ? 1 : 0,
 
         } ) );
 
     push ( @messages, $param ) if $param;
 
-    $self->_write_as_frame( $self->_pack_delimited( @messages ) ) );
+    $self->_write_as_frame( $self->_pack_delimited( @messages ) );
 
-    return $defined->promise();
+    return $deferred->promise();
 
 }
 
@@ -77,13 +77,13 @@ sub _handshake {
 
     $greeting .= $self->_make_frame( $connection_header->encode );
 
-    $self->{connection}->write( $greeting, sub { $self->_connected() } );
+    $self->{connection}->write( sub { $self->_connected() }, $greeting );
 
 }
 
 sub _connected {
 
-    $self->{connected} = 1;
+    $_[0]->{connected} = 1;
 
 }
 
@@ -119,9 +119,9 @@ sub _on_read {
 
     my ( $self, $data ) = @_;
 
-    my $self->{read_buffer} .= $data;
+    $self->{read_buffer} .= $data;
 
-    while (defined (my $data = $self->_try_read_framed()){
+    while (defined (my $data = $self->_try_read_framed())){
 
         my ($header_enc, $response_enc, $rest_enc) = $self->_split_delimited( $data );
 

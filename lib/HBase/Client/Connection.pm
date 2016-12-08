@@ -152,9 +152,9 @@ sub _can_write {
 
 sub write {
 
-    my ($self, $buffer_ref, $cb) = @_;
+    my ($self, $cb) = @_;
 
-    $self->_watch_can_write() if push( $self->{write_queue}, { buffer_ref => $buffer_ref, cb => $cb } ) == 1;
+    $self->_watch_can_write() if push( $self->{write_queue}, { buffer_ref => \$_[2], cb => $cb } ) == 1;
 
 }
 
