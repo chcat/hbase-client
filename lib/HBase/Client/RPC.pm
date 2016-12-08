@@ -153,11 +153,11 @@ sub _on_read {
 
 sub _split_delimited {
 
-    my ( $self, $data ) = @_;
+    my ( $self ) = @_;
 
     my @pieces;
 
-    push @pieces, substr( $data, 0, read_varint( $data ), '' ) while length $data;
+    push @pieces, substr( $_[1], 0, read_varint( $_[1] ), '' ) while length $_[1];
 
     return @pieces;
 }

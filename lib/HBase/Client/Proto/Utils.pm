@@ -8,15 +8,13 @@ our @EXPORT= ('read_varint', 'encode_varint');
 
 sub read_varint {
 
-    my ( $buf_ref, $advance ) = @_;
-
-    $advance = 1 unless defined $advance;
+    my $advance = $_[1] // 1;
 
     my $v = 0;
 
     my $cnt = 0;
 
-    my $limit = length $$buf_ref;
+    my $limit = length $_[0];
 
     my $b;
 
@@ -26,7 +24,7 @@ sub read_varint {
 
         die "Varint value is too big" if $cnt > 8;
 
-        $b = unpack ("C", substr $$buf_ref, $cnt, 1);
+        $b = unpack ("C", substr $_[0], $cnt, 1);
 
         $v |= ( ( $b & 0x7F ) << $cnt * 7 );
 
@@ -34,7 +32,7 @@ sub read_varint {
 
     } while ( $b & 0x80 );
 
-    substr $$buf_ref, 0, $cnt, '' if $advance;
+    substr $_[0], 0, $cnt, '' if $advance;
 
     return $v;
 
