@@ -48,9 +48,9 @@ sub _locate_region_in_meta {
 
                     row              => $region_name,
 
-                    column           => { family => 'info' },
+                    column           => [ { family => 'info' } ],
 
-                    closestRowBefore => 1,
+                    closest_row_before => 1,
 
                 },
 

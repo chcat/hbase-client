@@ -3,6 +3,8 @@ package HBase::Client::RPC;
 use v5.14;
 use warnings;
 
+use AnyEvent;
+
 use HBase::Client::Proto::Loader;
 use HBase::Client::Proto::Utils qw( read_varint encode_varint );
 
@@ -19,9 +21,12 @@ sub new {
             calls       => {},
             connection  => $connection,
             read_buffer => '',
+            timeout     => $args{timeout} // 3;
         }, $class;
 
     $connection->on_read( sub { $self->_on_read( @_ ) } );
+
+    $self->_handshake();
 
     return $self;
 
@@ -29,17 +34,21 @@ sub new {
 
 sub call {
 
-    my ( $self, $method, $param ) = @_;
+    my ( $self, $method, $param, $options ) = @_;
 
     my $deferred = deferred;
 
     my $call_id = $self->{call_count}++;
+
+    my $timeout = exists $options->{timeout} ? $options->{timeout} : $self->{timeout};
 
     $self->{calls}->{$call_id} = {
 
             deferred => $deferred,
 
             method   => $method,
+
+            timeout  => $timeout ? AnyEvent->timer( after => $timeout, cb => sub { $self->_timeout_call( $call_id ) } ) : undef,
 
         };
 
@@ -51,13 +60,23 @@ sub call {
 
             request_param   => $param ? 1 : 0,
 
-        } ) );
-
-    push ( @messages, $param ) if $param;
+        } ), $param // () );
 
     $self->_write_as_frame( $self->_pack_delimited( @messages ) );
 
     return $deferred->promise();
+
+}
+
+sub _timeout_call {
+
+    my ($self, $call_id) = @_;
+
+    if ( my $call = delete $self->{calls}->{ $call_id } ){
+
+            $call->{deferred}->reject('TIMEOUT');
+
+    }
 
 }
 
@@ -71,9 +90,13 @@ sub _handshake {
 
             service_name => 'ClientService',
 
-        } );
+            user_info    => {
 
-    # $connection_header->set_user_info();TODO
+                    effective_user  => 'Gandalf', #TODO
+
+                },
+
+        } );
 
     $greeting .= $self->_make_frame( $connection_header->encode );
 
@@ -129,13 +152,17 @@ sub _on_read {
 
         if ( $header->has_call_id() and my $call = delete $self->{calls}->{ $header->get_call_id() } ){
 
+            undef $call->{timeout};
+
+            my $deferred = $call->{deferred};
+
             if ( $header->has_exception() ){
 
-                $call->{deferred}->reject( $header->get_exception() );
+                $deferred->reject( $header->get_exception() );
 
             } else {
 
-                $call->{deferred}->resolve( $response_enc );
+                $deferred->resolve( $call->{method}->{response_type}->decode( $response_enc ) );
 
             }
 

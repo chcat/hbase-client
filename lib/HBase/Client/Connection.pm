@@ -92,7 +92,7 @@ sub _can_read {
 
         my $error= $!;
 
-        die $error; # TODO
+        warn "Zero bytes read: $error"; # TODO
 
     }
 
@@ -116,7 +116,7 @@ sub _can_write {
 
         my $to_write = (length $$buffer_ref) - $self->{write_progress};
 
-        my $written = syswrite( $self->{socket}, $$buffer_ref, $to_write );
+        my $written = syswrite( $self->{socket}, $$buffer_ref, $to_write, $self->{write_progress} );
 
         if (defined $written){
 
@@ -152,7 +152,7 @@ sub _can_write {
 
 sub write {
 
-    my ($self, $cb) = @_;
+    my ($self, $cb) = @_; # $data = $_[2]
 
     $self->_watch_can_write() if push( $self->{write_queue}, { buffer_ref => \$_[2], cb => $cb } ) == 1;
 
