@@ -3,7 +3,7 @@ package HBase::Client::Connection::Connecting;
 use v5.14;
 use warnings;
 
-use parent HBase::Client::Connection::State;
+use parent 'HBase::Client::Connection::State';
 
 sub _enter {
 

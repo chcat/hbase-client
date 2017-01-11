@@ -3,7 +3,7 @@ package HBase::Client::Connection::Disconnected;
 use v5.14;
 use warnings;
 
-use parent HBase::Client::Connection::State;
+use parent 'HBase::Client::Connection::State';
 
 use IO::Socket::INET;
 use Socket qw( TCP_NODELAY IPPROTO_TCP SOL_SOCKET SO_KEEPALIVE );
