@@ -13,7 +13,7 @@ require HBase::Client::Connection::Closed;
 
 sub connect {
 
-    my $state = blessed shift;
+    my $state = blessed(shift);
 
     die "Invalid connection state $state";
 
