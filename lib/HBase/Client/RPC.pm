@@ -21,7 +21,7 @@ sub new {
             calls       => {},
             connection  => $connection,
             read_buffer => '',
-            timeout     => $args{timeout} // 3;
+            timeout     => $args{timeout} // 3,
         }, $class;
 
     $connection->on_read( sub { $self->_on_read( @_ ) } );
@@ -32,7 +32,7 @@ sub new {
 
 }
 
-sub call {
+sub call_async {
 
     my ( $self, $method, $param, $options ) = @_;
 

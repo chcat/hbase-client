@@ -5,7 +5,6 @@ use warnings;
 
 use Digest::MD5 qw( md5_hex );
 
-use HBase::Client::Connection;
 use HBase::Client::Proto::Loader;
 use HBase::Client::RPC;
 
@@ -22,17 +21,27 @@ sub new {
     return $self;
 }
 
-sub get {
+sub get_async {
 
-    my ($self, $get) = @_;
+    my ($self, $region_name, $get, $options) = @_;
 
     my $method = {
 
+            name            => 'Get',
 
+            response_type   => 'HBase::Client::Proto::GetResponse',
 
         };
 
-    return $self->{rpc}->call( $method, $get );
+    my $request = HBase::Client::Proto::GetRequest->new( {
+
+            region => _region_specifier( $region_name ),
+
+            get    => $get,
+
+        } );
+
+    return $self->{rpc}->call( $method, $request, $options );
 
 }
 
