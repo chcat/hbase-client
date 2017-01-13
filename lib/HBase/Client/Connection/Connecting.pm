@@ -13,7 +13,7 @@ sub _enter {
 
         $self->_state( 'HBase::Client::Connection::Disconnected' );
 
-        $callback->( "Could not connect: $error" );
+        $callback->( "Could not connect: $error" ) if $callback;
 
         return;
 
@@ -25,13 +25,13 @@ sub _enter {
 
             $self->_state( 'HBase::Client::Connection::Connected' );
 
-            $callback->();
+            $callback->() if $callback;
 
         }, $timeout, sub {
 
             $self->_state( 'HBase::Client::Connection::Disconnected' );
 
-            $callback->( "Could not connect: timeout" );
+            $callback->( "Could not connect: timeout" ) if $callback;
 
         } );
 
