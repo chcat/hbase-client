@@ -3,22 +3,12 @@ package HBase::Client::Connection::Closed;
 use v5.14;
 use warnings;
 
-use parent 'HBase::Client::Connection::State';
+use parent 'HBase::Client::Connection::Disconnected';
 
-sub _enter {
+sub connect { die "Connection closed"; }
 
-    my ($self) = @_;
+sub write { die "Connection closed"; }
 
-    my $queue = $self->{write_queue};
-
-    for my $write ( @$queue ){
-
-
-
-    }
-
-
-}
-
+sub close {}
 
 1;

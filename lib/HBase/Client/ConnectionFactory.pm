@@ -1,4 +1,4 @@
-package HBase::Client::Connection;
+package HBase::Client::ConnectionFactory;
 
 use v5.14;
 use warnings;

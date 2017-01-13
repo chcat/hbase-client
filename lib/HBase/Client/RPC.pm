@@ -24,7 +24,9 @@ sub new {
             timeout     => $args{timeout} // 3,
         }, $class;
 
-    $connection->on_read( sub { $self->_on_read( @_ ) } );
+    $connection->set_on_read( sub { $self->_on_read( @_ ) } );
+
+    $connection->connect();
 
     $self->_handshake();
 
@@ -48,7 +50,7 @@ sub call_async {
 
             method   => $method,
 
-            timeout  => $timeout ? AnyEvent->timer( after => $timeout, cb => sub { $self->_timeout_call( $call_id ) } ) : undef,
+            timeout_watcher  => $timeout ? AnyEvent->timer( after => $timeout, cb => sub { $self->_timeout_call( $call_id ) } ) : undef,
 
         };
 
@@ -100,7 +102,7 @@ sub _handshake {
 
     $greeting .= $self->_make_frame( $connection_header->encode );
 
-    $self->{connection}->write( sub { $self->_connected() }, $greeting );
+    $self->{connection}->write( sub { $self->_connected() }, \$greeting );
 
 }
 
@@ -128,7 +130,7 @@ sub _join_delimited {
 
 sub _write_as_frame {
 
-    $_[0]->{connection}->write( undef, $_[0]->_make_frame( $_[1] ) );
+    $_[0]->{connection}->write( undef, \$_[0]->_make_frame( $_[1] ) );
 
 }
 
@@ -152,7 +154,7 @@ sub _on_read {
 
         if ( $header->has_call_id() and my $call = delete $self->{calls}->{ $header->get_call_id() } ){
 
-            undef $call->{timeout};
+            undef $call->{timeout_watcher};
 
             my $deferred = $call->{deferred};
 

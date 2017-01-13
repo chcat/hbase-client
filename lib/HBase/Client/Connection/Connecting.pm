@@ -7,9 +7,19 @@ use parent 'HBase::Client::Connection::State';
 
 sub _enter {
 
-    my ($self, %args) = @_;
+    my ($self, $previous_state, $callback, %args) = @_;
 
-    my $callback = $args{callback};
+    if (my $error = $self->_open_socket) {
+
+        $self->_state( 'HBase::Client::Connection::Disconnected' );
+
+        $callback->( "Could not connect: $error" );
+
+        return;
+
+    }
+
+    my $timeout = $args{timeout} // $self->{connect_timeout};
 
     $self->_watch_can_write_once( sub {
 
@@ -17,7 +27,7 @@ sub _enter {
 
             $callback->();
 
-        }, $args{timeout}, sub {
+        }, $timeout, sub {
 
             $self->_state( 'HBase::Client::Connection::Disconnected' );
 

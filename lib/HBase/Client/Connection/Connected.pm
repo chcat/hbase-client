@@ -17,21 +17,9 @@ sub _enter {
 
         } );
 
-    $self->_setup_write_watcher if @{$self->{write_queue}}; # start writing after reconnect
+    $self->_setup_write_watcher if @{$self->{write_queue}};
 
     return;
-
-}
-
-sub _leave {
-
-    my ($self) = @_;
-
-    $self->_unwatch_can_write;
-    $self->_unwatch_can_write_timeout;
-    $self->_unwatch_can_read;
-
-    $self->{socket}->close;
 
 }
 
@@ -43,22 +31,25 @@ sub write {
 
     $self->_setup_write_watcher unless $self->_watching_can_write;
 
+    return;
+
 }
 
 sub _setup_write_watcher {
 
      my ($self) = @_;
 
-     $self->_watch_can_write( $self->{write_timeout}, sub {
+     $self->_watch_can_write( sub {
 
              $self->_can_write;
 
-         }, sub {
+         }, $self->{write_timeout}, sub {
 
              $self->_disconnect("Write timeout");
 
-         } )
+         } );
 
+     return;
 }
 
 sub _can_write {
@@ -75,9 +66,13 @@ sub _can_write {
 
     my $to_write = (length $$buffer_ref) - $write_progress;
 
-    my $written = syswrite( $self->{socket}, $$buffer_ref, $to_write, $write_progress );
+    my ($error, $written) = $self->_socket_write( $buffer_ref, $to_write, $write_progress );
 
-    if (defined $written){
+    if ($error) {
+
+        return $self->_disconnect( $error );
+
+    } else {
 
         if ($written == $to_write){
 
@@ -93,10 +88,6 @@ sub _can_write {
 
         }
 
-    } else {
-
-        $self->_disconnect( $! ) unless $!{EAGAIN};
-
     }
 
     $self->_unwatch_can_write unless @$queue;
@@ -107,23 +98,19 @@ sub _can_read {
 
     my ( $self )= @_;
 
-    my $buf;
+    my ($error, $data) = $self->_socket_read();
 
-    my $read = sysread( $self->{socket}, $buf, $self->{read_buffer_size} );
+    if ($error) {
 
-    if ($read){
+        $self->_disconnect( $error );
 
-        $self->_on_read( $buf );
+    } else {
 
-    } elsif (!defined $read) {
-
-        $self->_disconnect( $! ) unless $!{EAGAIN};
-
-    } else { # $read == 0
-
-        $self->_disconnect("Disconnected from the server");
+        $self->_on_read( $data ) if $data;
 
     }
+
+    return;
 
 }
 
@@ -134,6 +121,8 @@ sub _disconnect {
     $self->_state( 'HBase::Client::Connection::Disconnected' );
 
     $self->_on_disconnect( $reason );
+
+    return;
 
 }
 
