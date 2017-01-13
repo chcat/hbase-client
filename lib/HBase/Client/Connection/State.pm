@@ -223,7 +223,7 @@ sub _socket_read {
 
     } elsif (!defined $read) {
 
-        return $!{EAGAIN} ? undef : "$i";
+        return $!{EAGAIN} ? undef : "$!";
 
     } else { # $read == 0
 
