@@ -6,6 +6,7 @@ use warnings;
 use AnyEvent;
 use Errno;
 use IO::Socket::INET;
+use Scalar::Util qw( blessed );
 use Socket qw( TCP_NODELAY IPPROTO_TCP SOL_SOCKET SO_KEEPALIVE );
 
 require HBase::Client::Connection::Opened;
