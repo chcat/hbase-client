@@ -98,7 +98,7 @@ sub _can_read {
 
     my ( $self )= @_;
 
-    my ($error, $data) = $self->_socket_read();
+    my ($error, $data) = $self->_socket_read;
 
     if ($error) {
 
@@ -106,7 +106,7 @@ sub _can_read {
 
     } else {
 
-        $self->_on_read( $data ) if $data;
+        $self->_on_read( $data ) if defined $data;
 
     }
 

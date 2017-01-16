@@ -108,9 +108,9 @@ sub _unwatch_can_write{ @{+shift}{qw (write_watcher write_timeout_watcher)} = ()
 
 sub _unwatch_can_read { undef shift->{read_watcher}; }
 
-sub _on_read { shift->_on_event( 'on_read' ); }
+sub _on_read { shift->_on_event( 'on_read', @_ ); }
 
-sub _on_disconnect { shift->_on_event( 'on_disconnect' ); }
+sub _on_disconnect { shift->_on_event( 'on_disconnect', @_  ); }
 
 sub _on_event {
 
