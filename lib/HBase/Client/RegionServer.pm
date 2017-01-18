@@ -146,7 +146,7 @@ sub _region_name {
 
     $start //= '';
 
-    $id // = '99999999999999';
+    $id //= '99999999999999';
 
     my $name = $table . ',' . $start . ',' . $id;
 
