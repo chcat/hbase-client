@@ -107,7 +107,7 @@ sub _cells_array_to_map {
 
         push @$values, $cell;
 
-        %to_sort{\$values} = \$values;
+        $to_sort{\$values} = \$values;
 
     }
 
