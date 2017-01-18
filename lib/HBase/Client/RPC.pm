@@ -115,9 +115,9 @@ sub _on_read {
 
     $self->{read_buffer} .= $$data_ref;
 
-    while (defined (my $frame = $self->_try_read_frame)){
+    while (my $frame_ref = $self->_try_read_frame)){
 
-        my ($header_enc, $response_enc, $rest_enc) = @{split_delimited( $frame )};
+        my ($header_enc, $response_enc, $rest_enc) = @{split_delimited( $frame_ref )};
 
         my $header = HBase::Client::Proto::ResponseHeader->decode( $header_enc );
 
@@ -155,30 +155,26 @@ sub _try_read_frame {
 
     my $frame_length = $self->{frame_length} //= $self->_try_read_int();
 
-    if (defined (my $bytes = $self->_try_read_bytes( $frame_length ))){
+    my $frame_ref = $self->_try_read_bytes( $frame_length );
 
-        undef $self->{frame_length};
+    undef $self->{frame_length} if $frame_ref;
 
-        return $bytes;
-
-    }
-
-    return undef;
+    return $frame_ref;
 
 }
 
 sub _try_read_int {
 
-    my $bytes = $_[0]->_try_read_bytes(4);
+    my $bytes_ref = $_[0]->_try_read_bytes(4);
 
-    return defined $bytes ? unpack( 'N', $bytes ) : undef;
+    return $bytes_ref ? unpack( 'N', $$bytes_ref ) : undef;
 
 }
 
 sub _try_read_bytes {  return $_[0]->_can_read_bytes( $_[1] ) ? $_[0]->_read_bytes( $_[1] ) : undef; }
 
-sub _read_bytes { return substr( $_[0]->{read_buffer}, 0, $_[1], '' ); }
+sub _read_bytes { return \substr( $_[0]->{read_buffer}, 0, $_[1], '' ); }
 
-sub _can_read_bytes { return length $_[0]->{read_buffer} >= $_[1]; }
+sub _can_read_bytes { return defined $_[1] && length $_[0]->{read_buffer} >= $_[1]; }
 
 1;
