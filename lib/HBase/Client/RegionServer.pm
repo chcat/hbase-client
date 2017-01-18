@@ -101,7 +101,7 @@ sub _cells_array_to_map {
 
         my $family = $cell->get_family;
 
-        my $qualifier = $cell->get_qualifier
+        my $qualifier = $cell->get_qualifier;
 
         my $values = $rows->{$row}->{$family}->{$qualifier} //= [];
 
