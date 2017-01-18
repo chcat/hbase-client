@@ -117,7 +117,7 @@ sub _on_read {
 
     while (defined (my $frame = $self->_try_read_frame)){
 
-        my ($header_enc, $response_enc, $rest_enc) = @{_split_delimited( $frame )};
+        my ($header_enc, $response_enc, $rest_enc) = @{split_delimited( $frame )};
 
         my $header = HBase::Client::Proto::ResponseHeader->decode( $header_enc );
 
