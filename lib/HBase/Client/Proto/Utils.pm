@@ -21,7 +21,7 @@ sub join_delimited {
 
     my ( $pieces ) = @_;
 
-    my $buffer = join '', map { ( encode_varint( length $_ ), $_ ) } @$pieces
+    my $buffer = join '', map { ( encode_varint( length $_ ), $_ ) } @$pieces;
 
     return \$buffer;
 
