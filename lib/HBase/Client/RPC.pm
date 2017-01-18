@@ -115,7 +115,7 @@ sub _on_read {
 
     $self->{read_buffer} .= $$data_ref;
 
-    while (my $frame_ref = $self->_try_read_frame)){
+    while (my $frame_ref = $self->_try_read_frame){
 
         my ($header_enc, $response_enc, $rest_enc) = @{split_delimited( $frame_ref )};
 
