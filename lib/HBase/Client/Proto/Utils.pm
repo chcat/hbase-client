@@ -4,37 +4,58 @@ use strict;
 use warnings;
 
 use Exporter 'import';
-our @EXPORT= ('read_varint', 'encode_varint');
+our @EXPORT= ('split_delimited','join_delimited');
+
+sub split_delimited {
+
+    my ($buffer_reference) = @_;
+
+    my @pieces;
+
+    push @pieces, substr( $$buffer_reference, 0, read_varint( $buffer_reference ), '' ) while length $$buffer_reference;
+
+    return \@pieces;
+}
+
+sub join_delimited {
+
+    my ( $pieces ) = @_;
+
+    my $buffer = join '', map { ( encode_varint( length $_ ), $_ ) } @$pieces
+
+    return \$buffer;
+
+}
 
 sub read_varint {
 
-    my $advance = $_[1] // 1;
+    my ($buffer_reference) = @_;
 
-    my $v = 0;
+    my $value = 0;
 
-    my $cnt = 0;
+    my $byte_count = 0;
 
-    my $limit = length $_[0];
+    my $limit = length $$buffer_reference;
 
-    my $b;
+    my $byte;
 
     do {
 
-        die "Unexpected end of the buffer" if $cnt >= $limit;
+        die "Unexpected end of the buffer" if $byte_count >= $limit;
 
-        die "Varint value is too big" if $cnt > 8;
+        die "Varint value is too big" if $byte_count > 8;
 
-        $b = unpack ("C", substr $_[0], $cnt, 1);
+        $byte = unpack ("C", substr $$buffer_reference, $byte_count, 1);
 
-        $v |= ( ( $b & 0x7F ) << $cnt * 7 );
+        $value |= ( ( $byte & 0x7F ) << $byte_count * 7 );
 
-        $cnt ++;
+        $byte_count ++;
 
-    } while ( $b & 0x80 );
+    } while ( $byte & 0x80 );
 
-    substr $_[0], 0, $cnt, '' if $advance;
+    substr $$buffer_reference, 0, $byte_count, '';
 
-    return $v;
+    return $value;
 
 }
 

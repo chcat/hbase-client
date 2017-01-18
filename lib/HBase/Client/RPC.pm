@@ -4,10 +4,8 @@ use v5.14;
 use warnings;
 
 use AnyEvent;
-
 use HBase::Client::Proto::Loader;
-use HBase::Client::Proto::Utils qw( read_varint encode_varint );
-
+use HBase::Client::Proto::Utils qw( split_delimited join_delimited );
 use Promises qw( deferred );
 
 sub new {
@@ -42,29 +40,24 @@ sub call_async {
 
     my $call_id = $self->{call_count}++;
 
-    my $timeout = exists $options->{timeout} ? $options->{timeout} : $self->{timeout};
+    my $timeout = $options->{timeout} // $self->{timeout};
 
     $self->{calls}->{$call_id} = {
-
             deferred => $deferred,
-
             method   => $method,
-
             timeout_watcher  => $timeout ? AnyEvent->timer( after => $timeout, cb => sub { $self->_timeout_call( $call_id ) } ) : undef,
-
         };
 
     my @messages = ( HBase::Client::Proto::RequestHeader->new( {
-
             call_id         => $call_id,
-
             method_name     => $method->{name},
-
             request_param   => $param ? 1 : 0,
 
-        } ), $param // () );
+        } ) );
 
-    $self->_write_as_frame( $self->_pack_delimited( @messages ) );
+    push @messages, $param if $param;
+
+    $self->_write_frame( $self->_pack_delimited( @messages ) );
 
     return $deferred->promise();
 
@@ -89,9 +82,7 @@ sub _handshake {
     my $greeting = pack ('a*CC', 'HBas', 0, 80); # preamble
 
     my $connection_header = HBase::Client::Proto::ConnectionHeader->new( {
-
             service_name => 'ClientService',
-
             user_info    => {
 
                     effective_user  => 'Gandalf', #TODO
@@ -106,49 +97,30 @@ sub _handshake {
 
 }
 
-sub _connected {
-
-    $_[0]->{connected} = 1;
-
-}
+sub _connected { $_[0]->{connected} = 1; }
 
 sub _pack_delimited {
 
     my ( $self, @messages ) = @_;
 
-    return $self->_join_delimited( [ map { defined $_ ? $_->encode : () } @messages ] );
+    return join_delimited( [ map { defined $_ ? $_->encode : () } @messages ] );
 
 }
 
-sub _join_delimited {
 
-    my ( $self, $pieces ) = @_;
+sub _write_frame { $_[0]->{connection}->write( undef, \$_[0]->_make_frame( $_[1] ) ); }
 
-    return join '', map { ( encode_varint( length $_ ), $_ ) } @$pieces;
-
-}
-
-sub _write_as_frame {
-
-    $_[0]->{connection}->write( undef, \$_[0]->_make_frame( $_[1] ) );
-
-}
-
-sub _make_frame {
-
-    return pack ('Na*', length $_[1], $_[1]);
-
-}
+sub _make_frame { return pack ('Na*', length $_[1], $_[1]); }
 
 sub _on_read {
 
-    my ( $self, $data ) = @_;
+    my ( $self, $data_ref ) = @_;
 
-    $self->{read_buffer} .= $data;
+    $self->{read_buffer} .= $$data_ref;
 
-    while (defined (my $data = $self->_try_read_framed())){
+    while (defined (my $frame = $self->_try_read_frame)){
 
-        my ($header_enc, $response_enc, $rest_enc) = $self->_split_delimited( $data );
+        my ($header_enc, $response_enc, $rest_enc) = @{_split_delimited( $frame )};
 
         my $header = HBase::Client::Proto::ResponseHeader->decode( $header_enc );
 
@@ -180,43 +152,36 @@ sub _on_read {
 
 }
 
-sub _split_delimited {
+sub _try_read_frame {
 
-    my ( $self ) = @_;
+    my ($self) = @_;
 
-    my @pieces;
+    my $frame_length = $self->{frame_length} //= $self->_try_read_int();
 
-    push @pieces, substr( $_[1], 0, read_varint( $_[1] ), '' ) while length $_[1];
+    if (defined ($bytes = $self->_try_read_bytes( $frame_length ))){
 
-    return @pieces;
-}
+        undef $self->{frame_length};
 
-sub _try_read_framed {
+        return $bytes;
 
-    $_[0]->{frame_length} = $_[0]->_try_read_int() if !defined $_[0]->{frame_length};
+    }
 
-    return defined $_[0]->{frame_length} && $_[0]->_can_read_bytes( $_[0]->{frame_length} )
-        ? $_[0]->_read_bytes( delete $_[0]->{frame_length} )
-        : undef;
+    return undef;
 
 }
 
 sub _try_read_int {
 
-    return $_[0]->_can_read_bytes(4) ? unpack( 'N', $_[0]->_read_bytes(4)) : undef;
+    my $bytes = $_[0]->_try_read_bytes(4);
+
+    return defined $bytes ? unpack( 'N', $bytes ) : undef;
 
 }
 
-sub _read_bytes {
+sub _try_read_bytes {  return $_[0]->_can_read_bytes( $_[1] ) ? $_[0]->_read_bytes( $_[1] ) : undef; }
 
-    return substr( $_[0]->{read_buffer}, 0, $_[1], '' );
+sub _read_bytes { return substr( $_[0]->{read_buffer}, 0, $_[1], '' ); }
 
-}
-
-sub _can_read_bytes {
-
-     return length $_[0]->{read_buffer} >= $_[1];
-
-}
+sub _can_read_bytes { return length $_[0]->{read_buffer} >= $_[1]; }
 
 1;

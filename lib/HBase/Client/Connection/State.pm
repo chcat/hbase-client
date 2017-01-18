@@ -220,7 +220,7 @@ sub _socket_read {
 
     if ($read){
 
-        return (undef, $buffer);
+        return (undef, \$buffer);
 
     } elsif (!defined $read) {
 
