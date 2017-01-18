@@ -158,7 +158,7 @@ sub _try_read_frame {
 
     my $frame_length = $self->{frame_length} //= $self->_try_read_int();
 
-    if (defined ($bytes = $self->_try_read_bytes( $frame_length ))){
+    if (defined (my $bytes = $self->_try_read_bytes( $frame_length ))){
 
         undef $self->{frame_length};
 
