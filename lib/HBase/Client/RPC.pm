@@ -57,7 +57,7 @@ sub call_async {
 
     push @messages, $param if $param;
 
-    $self->_write_frame( $self->_pack_delimited( @messages ) );
+    $self->_write_as_frame( @messages );
 
     return $deferred->promise();
 
@@ -79,9 +79,7 @@ sub _handshake {
 
     my ( $self )= @_;
 
-    my $greeting = pack ('a*CC', 'HBas', 0, 80); # preamble
-
-    my $connection_header = HBase::Client::Proto::ConnectionHeader->new( {
+    my $header = HBase::Client::Proto::ConnectionHeader->new( {
             service_name => 'ClientService',
             user_info    => {
 
@@ -89,9 +87,9 @@ sub _handshake {
 
                 },
 
-        } );
+        } )->encode;
 
-    $greeting .= $self->_make_frame( $connection_header->encode );
+    my $greeting = pack ('a*CCNa*', 'HBas', 0, 80, length $header, $header);
 
     $self->{connection}->write( sub { $self->_connected() }, \$greeting );
 
@@ -99,18 +97,17 @@ sub _handshake {
 
 sub _connected { $_[0]->{connected} = 1; }
 
-sub _pack_delimited {
+sub _write_as_frame {
 
-    my ( $self, @messages ) = @_;
+    my ($self, @messages) = @_;
 
-    return join_delimited( [ map { defined $_ ? $_->encode : () } @messages ] );
+    my $frame_ref = join_delimited( [ map { defined $_ ? $_->encode : () } @messages ] );
+
+    substr($$frame_ref, 0, 0) = pack('N', length $$frame_ref);
+
+    $self->{connection}->write( undef, $frame_ref };
 
 }
-
-
-sub _write_frame { $_[0]->{connection}->write( undef, \$_[0]->_make_frame( $_[1] ) ); }
-
-sub _make_frame { return pack ('Na*', length $_[1], $_[1]); }
 
 sub _on_read {
 
