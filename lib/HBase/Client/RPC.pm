@@ -105,7 +105,7 @@ sub _write_as_frame {
 
     substr($$frame_ref, 0, 0) = pack('N', length $$frame_ref);
 
-    $self->{connection}->write( undef, $frame_ref };
+    $self->{connection}->write( undef, $frame_ref );
 
 }
 
