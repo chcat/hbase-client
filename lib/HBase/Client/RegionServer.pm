@@ -51,7 +51,7 @@ sub _locate_region {
 
     my ($self, $table, $row) = @_;
 
-    my $region_name = $self->_region_name( 0, $table, $row, '99999999999999');
+    my $region_name = $self->_region_name( $table, $row, '99999999999999');
 
     my $request = HBase::Client::Proto::GetRequest->new( {
 
