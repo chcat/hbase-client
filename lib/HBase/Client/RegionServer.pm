@@ -47,9 +47,11 @@ sub get_async {
 
 }
 
-sub _locate_region_in_meta {
+sub _locate_region {
 
-    my ($self, $region_name) = @_;
+    my ($self, $table, $row) = @_;
+
+    my $region_name = $self->_region_name( 0, $table, $row, '99999999999999');
 
     my $request = HBase::Client::Proto::GetRequest->new( {
 
@@ -69,29 +71,39 @@ sub _locate_region_in_meta {
 
     my $p = $self->_rpc_call_async( { name => 'Get', response_type=>'HBase::Client::Proto::GetResponse' }, $request );
 
-    $p->then( sub { $self->_handle_locate_region_response }, sub {  } );
+    $p->then( sub { $self->_handle_locate_region_response( @_ ) }, sub {  } );
 }
 
 sub _handle_locate_region_response {
 
     my ($self, $response) = @_;
 
-    my $result = $response->get_result or return;
+    my $result = $response->get_result or die;
 
-    my $cells = $result->get_cell_list or return;
+    my $rows = $self->_cell_array_to_row_map( $result->get_cell_list );
 
-    my $cell = first { $_->get_family eq 'info' and  $_->get_qualifier eq 'regioninfo'} @$cells or return;
+    my ($region_name) = keys %$rows or die;
 
-    my $region_info = HBase::Client::Proto::RegionInfo->decode( substr $cell->get_value, 4 );
+    my $row = $rows->{$region_name};
 
+    my $region_info_encoded = $row->{info}->{regioninfo}->[0]->{value} // die;
+
+    my $region_info = HBase::Client::Proto::RegionInfo->decode( substr $region_info_encoded, 4 );
+
+    return {
+            name        => $region_name,
+            server      => $row->{info}->{server}->[0]->{value},
+            start       => $region_info->get_start_key,
+            end         => $region_info->get_end_key,
+        };
 
 }
 
-sub _cells_array_to_map {
+sub _cell_array_to_row_map {
 
     my ($self, $cells) = @_;
 
-    my $rows;
+    my $map;
 
     my %to_sort;
 
@@ -103,7 +115,7 @@ sub _cells_array_to_map {
 
         my $qualifier = $cell->get_qualifier;
 
-        my $values = $rows->{$row}->{$family}->{$qualifier} //= [];
+        my $values = $map->{$row}->{$family}->{$qualifier} //= [];
 
         push @$values, $cell;
 
@@ -113,13 +125,7 @@ sub _cells_array_to_map {
 
     $$_ = [ sort { $b->get_timestamp <=> $a->get_timestamp } @{$$_} ] for (values %to_sort);
 
-    return $rows;
-
-}
-
-sub _extract_region_location {
-
-    my ($self, $region_name) = @_;
+    return $map;
 
 }
 
@@ -144,15 +150,19 @@ sub _region_name {
 
     my ($self, $table, $start, $id, $replica_id) = @_;
 
-    $start //= '';
-
-    $id //= '99999999999999';
-
-    my $name = $table . ',' . $start . ',' . $id;
+    my $name = $table . ',' . ($start // '') . ',' . ($id // '') ;
 
     $name .= '_' . sprintf( '%04X', $replica_id) if $replica_id;
 
-    return $name . '.' . md5_hex( $name );
+    return $name;
+
+}
+
+sub _region_name_new_format {
+
+    my $name = shift->_region_name( @_ );
+
+    return $name . '.' . md5_hex( $name ) . '.';
 
 }
 
