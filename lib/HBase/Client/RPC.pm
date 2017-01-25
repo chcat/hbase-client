@@ -59,7 +59,7 @@ sub call_async {
 
     $self->_write_as_frame( @messages );
 
-    return $deferred->promise();
+    return $deferred->promise;
 
 }
 
@@ -72,6 +72,8 @@ sub _timeout_call {
             $call->{deferred}->reject('TIMEOUT');
 
     }
+
+    return;
 
 }
 
@@ -92,6 +94,8 @@ sub _handshake {
     my $greeting = pack ('a*CCNa*', 'HBas', 0, 80, length $header, $header);
 
     $self->{connection}->write( sub { $self->_connected() }, \$greeting );
+
+    return;
 
 }
 

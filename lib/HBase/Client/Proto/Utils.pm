@@ -45,7 +45,7 @@ sub read_varint {
 
         die "Varint value is too big" if $byte_count > 8;
 
-        $byte = unpack ("C", substr $$buffer_reference, $byte_count, 1);
+        $byte = unpack ("C", substr ($$buffer_reference, $byte_count, 1));
 
         $value |= ( ( $byte & 0x7F ) << $byte_count * 7 );
 
