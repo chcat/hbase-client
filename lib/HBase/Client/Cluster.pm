@@ -27,7 +27,7 @@ sub get_async {
 
     my ($self, $table, $get) = @_;
 
-    my $row = $get->get_row;
+    my $row = $get->{row};
 
     my $region;
 
