@@ -12,12 +12,11 @@ sub new {
 
     my $meta_holder_locator = $args{meta_holder_locator};
 
-    my $node_discoverer = $args{node_discoverer};
+    my $node_pool = $args{node_pool};
 
     my $self = bless {
             meta_holder_locator => $meta_holder_locator,
-            node_discoverer     => $node_discoverer,
-            nodes               => {},
+            node_pool           => $node_pool,
         }, $class;
 
     return $self;
@@ -56,7 +55,7 @@ sub _get_node {
 
     my ($self, $server) = @_;
 
-    return $self->{nodes}->{server} //= $self->{node_discoverer}->_discover_node( $server );
+    return $self->{node_pool}->get_node( $server );
 
 }
 
@@ -68,17 +67,23 @@ sub _locate_region {
         ->_locate_meta_holder_async
         ->then( sub {
 
-                return $self->_get_node( @_ );
+                my ($server) = @_;
+
+                return $self->_get_node( $server );
 
             } )
         ->then( sub {
 
-                return $self->_query_meta( @_, $table, $row );
+                my ($node) = @_;
+
+                return $self->_query_meta( $node, $table, $row );
 
             } )
         ->then( sub {
 
-                return $self->_handle_locate_region_response( @_ );
+                my ($response) = @_;
+
+                return $self->_handle_locate_region_response( $response );
 
             } );
 

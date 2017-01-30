@@ -12,8 +12,8 @@ sub new {
     my ($class, %args) = @_;
 
     return bless {
-            zookeeper_quorum => $args{zookeeper_quorum},
-            zookeeper_path   => $args{zookeeper_path} // '/hbase/meta-region-server', #/
+            zookeeper_quorum => $args{quorum},
+            zookeeper_path   => $args{path} // '/hbase/meta-region-server', #/
         }, $class;
 
 }
@@ -22,7 +22,7 @@ sub locate {
 
     my ($self) = @_;
 
-    my $node = Net::ZooKeeper->new( $self->{zookeeper_quorum} )->get( $self->{zookeeper_path} );
+    my $node = Net::ZooKeeper->new( $self->{quorum} )->get( $self->{path} );
 
     my ( $magic, $id_length, $blob ) = unpack ( 'CNA*', $node );
 
