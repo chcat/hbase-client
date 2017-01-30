@@ -12,8 +12,8 @@ sub new {
     my ($class, %args) = @_;
 
     return bless {
-            zookeeper_quorum => $args{quorum},
-            zookeeper_path   => $args{path} // '/hbase/meta-region-server', #/
+            quorum => $args{quorum},
+            path   => $args{path} // '/hbase/meta-region-server', #/
         }, $class;
 
 }
