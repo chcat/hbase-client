@@ -24,10 +24,10 @@ sub new {
 
     my $node_pool = HBase::Client::NodePool->new();
 
-    my $cluster = HBase::Client::Cluster->new({
+    my $cluster = HBase::Client::Cluster->new(
             meta_holder_locator => $meta_holder_locator,
             node_pool           => $node_pool,
-        });
+        );
 
     return bless {
             cluster => $cluster,
