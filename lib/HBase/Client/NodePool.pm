@@ -24,7 +24,7 @@ sub get_node {
 
     my ($self, $server) = @_;
 
-    return $self->{nodes}->{server} //= $self->_discover_node( $server );
+    return $self->{nodes}->{$server} //= $self->_discover_node( $server );
 
 }
 
