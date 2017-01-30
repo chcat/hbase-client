@@ -47,7 +47,7 @@ sub get {
 
     my ($result,$error);
 
-    $shift->get_async( @_ )
+    shift->get_async( @_ )
         ->then( sub { $result = shift; }, sub { $error = shift; } )
         ->finally( sub { $done->send; } );
 

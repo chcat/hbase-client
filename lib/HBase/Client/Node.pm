@@ -21,6 +21,14 @@ sub new {
     return $self;
 }
 
+sub connect {
+
+    my ($self, $cb ) = @_;
+
+    $cb->();
+
+}
+
 sub get_async {
 
     my ($self, $region, $get) = @_;
