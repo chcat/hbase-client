@@ -83,7 +83,7 @@ sub _locate_region {
 
                 my ($response) = @_;
 
-                return $self->_handle_locate_region_response( $response );
+                return $self->_handle_query_meta_response( $response );
 
             } );
 
