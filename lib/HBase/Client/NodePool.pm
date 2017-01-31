@@ -37,11 +37,11 @@ sub _discover_node {
     my $connection = HBase::Client::Connection::Opened->new(
             host                => $host,
             port                => $port,
-            connect_timeout     => 30,
-            write_timeout       => 30,
+            connect_timeout     => 3,
+            write_timeout       => 3,
         );
 
-    my $rpc = HBase::Client::RPC->new( connection => $connection, timeout => 30 );
+    my $rpc = HBase::Client::RPC->new( connection => $connection, timeout => 15 );
 
     my $node = HBase::Client::Node->new( rpc => $rpc );
 

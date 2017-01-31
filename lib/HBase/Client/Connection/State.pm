@@ -160,6 +160,8 @@ sub _setup_io_timeout_watcher {
 
     my ($self, $timeout, $callback, $timeout_watcher_name, $io_watcher_name ) = @_;
 
+    AnyEvent->now_update; # updates AnyEvent's "current time" - otherwise the timer we gonna set up may fire too early
+
     $self->{ $timeout_watcher_name } = AnyEvent->timer( after => $timeout, cb => sub {
 
             # cancel the corresponding io watcher as timeout fired

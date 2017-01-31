@@ -42,6 +42,8 @@ sub call_async {
 
     my $timeout = $options->{timeout} // $self->{timeout};
 
+    AnyEvent->now_update; # updates AnyEvent's "current time" - otherwise the timer we gonna set up may fire too early
+
     $self->{calls}->{$call_id} = {
             deferred => $deferred,
             method   => $method,
