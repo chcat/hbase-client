@@ -41,21 +41,10 @@ sub get_async {
 
 }
 
-sub get {
+sub mutate_async {
 
-    my $done = AnyEvent->condvar;
+    shift->{cluster}->mutate_async( @_ );
 
-    my ($result,$error);
-
-    shift->get_async( @_ )
-        ->then( sub { $result = shift; }, sub { $error = shift; } )
-        ->finally( sub { $done->send; } );
-
-    $done->recv;
-
-    die $error if defined $error;
-
-    return $result;
 }
 
 sub DESTROY {
@@ -66,6 +55,36 @@ sub DESTROY {
 
 
     #TODO shutdown
+}
+
+sub _sync {
+
+    my ($sub) = @_;
+
+    return sub {
+
+            my $done = AnyEvent->condvar;
+
+            my ($result,$error);
+
+            $sub->( @_ )
+                ->then( sub { $result = shift; }, sub { $error = shift; } )
+                ->finally( sub { $done->send; } );
+
+            $done->recv;
+
+            die $error if defined $error;
+
+            return $result;
+
+        };
+}
+
+SYNC_METHODS: {
+
+    *{get} = _sync( \&get_async );
+    *{mutate} = _sync( \&mutate_async );
+
 }
 
 1;

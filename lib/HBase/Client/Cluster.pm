@@ -27,11 +27,36 @@ sub get_async {
 
     my ($self, $table, $get) = @_;
 
-    my $row = $get->{row};
+    return $self->_get_region_and_node( $table, $get->{row} )->then( sub {
 
-    my $region;
+                my ($node) = @_;
 
-    return $self->_locate_region( $table, $row )
+                return $node->get_async( $region, $get );
+
+            } );
+
+}
+
+sub mutate_async {
+
+    my ($self, $table, $mutation, $condition, $nonce_group) = @_;
+
+    return $self->_get_region_and_node( $table, $mutation->{row} )->then( sub {
+
+                my ($region, $node) = @_;
+
+                return $node->mutate_async( $region, $mutation, $condition, $nonce_group );
+
+            } );
+}
+
+sub _get_region_and_node {
+
+     my ($self, $table, $row);
+
+     my $region;
+
+     return $self->_locate_region( $table, $row )
         ->then( sub {
 
                 my ($location) = @_;
@@ -41,13 +66,7 @@ sub get_async {
                 return $self->_get_node( $location->{server} );
 
             } )
-        ->then( sub {
-
-                my ($node) = @_;
-
-                return $node->get_async( $region, $get );
-
-            } );
+        ->then( sub { return ($region, @_) } );
 
 }
 
@@ -63,8 +82,7 @@ sub _locate_region {
 
     my ($self, $table, $row) = @_;
 
-    return $self
-        ->_locate_meta_holder_async
+    return $self->_locate_meta_holder
         ->then( sub {
 
                 my ($server) = @_;
@@ -89,7 +107,7 @@ sub _locate_region {
 
 }
 
-sub _locate_meta_holder_async {
+sub _locate_meta_holder {
 
     my ($self) = @_;
 
