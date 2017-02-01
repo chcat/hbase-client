@@ -29,7 +29,7 @@ sub get_async {
 
     return $self->_get_region_and_node( $table, $get->{row} )->then( sub {
 
-                my ($node) = @_;
+                my ($region, $node) = @_;
 
                 return $node->get_async( $region, $get );
 
