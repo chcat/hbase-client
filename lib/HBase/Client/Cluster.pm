@@ -52,7 +52,7 @@ sub mutate_async {
 
 sub _get_region_and_node {
 
-     my ($self, $table, $row);
+     my ($self, $table, $row) = @_;
 
      my $region;
 
