@@ -50,9 +50,40 @@ sub mutate_async {
             } );
 }
 
+sub _scan_first_async {
+
+    my ($self, $table, $scan, $number_of_rows) = @_;
+
+    my $row = $scan->{start_row} // '';
+
+    return $self->_get_region_and_node( $table, $row )
+        ->then( sub {
+
+                my ($region, $node) = @_;
+
+                return $node->scan_first_async( $region, $scan, $number_of_rows );
+
+            } );
+
+}
+
 sub _get_region_and_node {
 
      my ($self, $table, $row) = @_;
+
+     if ($table eq meta_table_name) {
+
+        return $self->_locate_meta_holder
+            ->then( sub {
+
+                    my ($server) = @_;
+
+                    return $self->_get_node( $server );
+
+                } )
+            ->then( sub { return (meta_region_specifier, @_) } } );
+
+     }
 
      my $region;
 

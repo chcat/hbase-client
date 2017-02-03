@@ -5,7 +5,7 @@ use warnings;
 
 use HBase::Client::Connection::Opened;
 use HBase::Client::Node;
-use HBase::Client::RPC;
+use HBase::Client::RPCChannel;
 
 use Promises qw( deferred );
 
@@ -41,7 +41,7 @@ sub _discover_node {
             write_timeout       => 3,
         );
 
-    my $rpc = HBase::Client::RPC->new( connection => $connection, timeout => 15 );
+    my $rpc = HBase::Client::RPCChannel->new( connection => $connection, timeout => 15 );
 
     my $node = HBase::Client::Node->new( rpc => $rpc );
 

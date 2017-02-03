@@ -8,6 +8,7 @@ our $VERSION = '0.0.1';
 use AnyEvent;
 use HBase::Client::Cluster;
 use HBase::Client::NodePool;
+use HBase::Client::Scanner;
 use HBase::Client::ZookeeperMetaHolderLocator;
 
 sub new {
@@ -47,14 +48,10 @@ sub mutate_async {
 
 }
 
-sub DESTROY {
-    local $@;
-    return if ${^GLOBAL_PHASE} eq 'DESTRUCT';
+sub scan {
 
-    my $self = shift;
+    shift->{cluster}->scan( @_ );
 
-
-    #TODO shutdown
 }
 
 sub _sync {
@@ -85,6 +82,16 @@ SYNC_METHODS: {
     *{get} = _sync( \&get_async );
     *{mutate} = _sync( \&mutate_async );
 
+}
+
+sub DESTROY {
+    local $@;
+    return if ${^GLOBAL_PHASE} eq 'DESTRUCT';
+
+    my $self = shift;
+
+
+    #TODO shutdown
 }
 
 1;

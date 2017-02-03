@@ -4,11 +4,11 @@ use v5.14;
 use warnings;
 
 use HBase::Client::Proto::Loader;
-use HBase::Client::RPC;
+use HBase::Client::RegionScanner;
 
 use constant GET => { name => 'Get', response_type=>'HBase::Client::Proto::GetResponse' };
 use constant MUTATE => { name => 'Mutate', response_type=>'HBase::Client::Proto::MutateResponse' };
-
+use constant SCAN => { name => 'Scan', response_type=>'HBase::Client::Proto::ScanResponse' };
 
 sub new {
 
@@ -55,6 +55,49 @@ sub mutate_async {
         } );
 
     return $self->_rpc_call_async( MUTATE, $request );
+
+}
+
+sub scan {
+
+    my ($self, $region, $scan, $number_of_rows) = @_;
+
+    return HBase::Client::RegionScanner->new(
+            node                => $self,
+            region              => $region,
+            scan                => $scan,
+            number_of_rows      => $number_of_rows,
+        );
+
+}
+
+sub _scan_first_async {
+
+    my ($self, $region, $scan, $number_of_rows, $next_call_seq) = @_;
+
+    my $request = HBase::Client::Proto::ScanRequest->new( {
+            region  => $region,
+            scan    => $scan,
+            defined $number_of_rows ? (number_of_rows => $number_of_rows) : (),
+            defined $next_call_seq ? (next_call_seq => $next_call_seq) : (),
+        } );
+
+    return $self->_rpc_call_async( SCAN, $request );
+
+}
+
+sub _scan_next_async {
+
+    my ($self, $scanner_id, $number_of_rows, $next_call_seq, $close_scanner,) = @_;
+
+    my $request = HBase::Client::Proto::ScanRequest->new( {
+            scanner_id  => $scanner_id,
+            defined $number_of_rows ? (number_of_rows => $number_of_rows) : (),
+            defined $close_scanner ? (close_scanner => $close_scanner) : (),
+            defined $next_call_seq ? (next_call_seq => $next_call_seq) : (),
+        } );
+
+    return $self->_rpc_call_async( SCAN, $request );
 
 }
 

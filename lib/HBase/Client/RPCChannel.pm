@@ -1,4 +1,4 @@
-package HBase::Client::RPC;
+package HBase::Client::RPCChannel;
 
 use v5.14;
 use warnings;
