@@ -21,14 +21,12 @@ sub write {
 
     my ($self, $callback, $data_ref) = @_;
 
-    my $queue = $self->{write_queue};
-
     my $write = {
             buffer_ref => $data_ref,
             callback   => $callback
         };
 
-    push @$queue, $write;
+    push @{$self->{write_queue}}, $write;
 
     return;
 
@@ -40,13 +38,13 @@ sub close {
 
     $self->_state( 'HBase::Client::Connection::Closed' );
 
-    my $queue = $self->{write_queue};
-
-    for my $write ( @$queue ){
+    for my $write ( @{$self->{write_queue}} ){
 
         $write->{callback}->( 'Connection closed' );
 
     }
+
+    $self->{write_queue} = [];
 
     return;
 

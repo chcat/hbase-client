@@ -3,6 +3,7 @@ package HBase::Client::Cluster;
 use v5.14;
 use warnings;
 
+use HBase::Client::ClusterScanner;
 use HBase::Client::Proto::Loader;
 use HBase::Client::Utils;
 
@@ -54,9 +55,9 @@ sub scan {
 
     my ($self, $table, $scan, $number_of_rows) = @_;
 
-    return HBase::Client::RegionScanner->new(
-            node                => $self,
-            region              => $region,
+    return HBase::Client::ClusterScanner->new(
+            cluster             => $self,
+            table               => $table,
             scan                => $scan,
             number_of_rows      => $number_of_rows,
         );
@@ -77,7 +78,7 @@ sub _get_region_and_node {
                     return $self->_get_node( $server );
 
                 } )
-            ->then( sub { return (meta_region_specifier, @_) } } );
+            ->then( sub { return (meta_region_specifier, @_) } );
 
      }
 

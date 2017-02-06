@@ -22,38 +22,21 @@ sub next_async {
 
     my ($node, $scanner_id, $number_of_rows, $next_call_seq) = @$self{ qw ( node scanner_id number_of_rows next_call_seq ) };
 
-    if (defined $scanner_id){
+    my ($region, $scan) = defined $scanner_id ? () : @$self{ qw ( region scan ) };
 
-        return $node->_scan_next_async( $scanner_id, $number_of_rows, $next_call_seq )
-            ->then( sub {
+    return $node->_scan( $region, $scan, $scanner_id, $number_of_rows, $next_call_seq, $close_scanner )
+        ->then( sub {
 
-                    my ($scan_response) = @_;
+                my ($scan_response) = @_;
 
-                    $self->{next_call_seq} = $next_call_seq + 1;
+                $self->{next_call_seq} = $next_call_seq + 1;
 
-                    return $scan_response;
+                $self->{scanner_id} = $scan_response->get_scanner_id unless defined $scanner_id;
 
-                } );
+                return $scan_response;
 
-    } else {
+            } );
 
-        my ($region, $scan) = @$self{ qw ( region scan ) };
-
-        return $node->_scan_first_async( $region, $scan, $number_of_rows, $next_call_seq )
-            ->then( sub {
-
-                    my ($scan_response) = @_;
-
-                    $self->{next_call_seq} = $next_call_seq + 1;
-
-                    $self->{scanner_id} = $scan_response->get_scanner_id;
-
-                    return $scan_response;
-
-                } );
-
-
-    }
 
 }
 

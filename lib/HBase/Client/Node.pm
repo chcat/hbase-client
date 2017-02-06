@@ -71,27 +71,14 @@ sub scan {
 
 }
 
-sub _scan_first_async {
+sub _scan {
 
-    my ($self, $region, $scan, $number_of_rows, $next_call_seq) = @_;
-
-    my $request = HBase::Client::Proto::ScanRequest->new( {
-            region  => $region,
-            scan    => $scan,
-            defined $number_of_rows ? (number_of_rows => $number_of_rows) : (),
-            defined $next_call_seq ? (next_call_seq => $next_call_seq) : (),
-        } );
-
-    return $self->_rpc_call_async( SCAN, $request );
-
-}
-
-sub _scan_next_async {
-
-    my ($self, $scanner_id, $number_of_rows, $next_call_seq, $close_scanner,) = @_;
+    my ($self, $region, $scan, $scanner_id, $number_of_rows, $next_call_seq, $close_scanner) = @_;
 
     my $request = HBase::Client::Proto::ScanRequest->new( {
-            scanner_id  => $scanner_id,
+            $region ? (region => $region) : (),
+            $scan ? (scan => $scan) : (),
+            defined $scanner_id ? (scanner_id => $scanner_id) : (),
             defined $number_of_rows ? (number_of_rows => $number_of_rows) : (),
             defined $close_scanner ? (close_scanner => $close_scanner) : (),
             defined $next_call_seq ? (next_call_seq => $next_call_seq) : (),

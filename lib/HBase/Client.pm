@@ -5,7 +5,7 @@ use warnings;
 
 our $VERSION = '0.0.1';
 
-use AnyEvent;
+use HBase::Client::Sync;
 use HBase::Client::Cluster;
 use HBase::Client::NodePool;
 use HBase::Client::Scanner;
@@ -50,37 +50,19 @@ sub mutate_async {
 
 sub scan {
 
-    shift->{cluster}->scan( @_ );
+    my ($self, $table, $scan, $number_of_rows) = @_;
 
-}
+    return HBase::Client::Scanner->new(
+            client      => $self,
+            scanner     => $self->{cluster}->scan( $table, $scan, $number_of_rows // 1000 ),
+        );
 
-sub _sync {
-
-    my ($sub) = @_;
-
-    return sub {
-
-            my $done = AnyEvent->condvar;
-
-            my ($result,$error);
-
-            $sub->( @_ )
-                ->then( sub { $result = shift; }, sub { $error = shift; } )
-                ->finally( sub { $done->send; } );
-
-            $done->recv;
-
-            die $error if defined $error;
-
-            return $result;
-
-        };
 }
 
 SYNC_METHODS: {
 
-    *{get} = _sync( \&get_async );
-    *{mutate} = _sync( \&mutate_async );
+    *{get} = sync( \&get_async );
+    *{mutate} = sync( \&mutate_async );
 
 }
 
