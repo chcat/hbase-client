@@ -24,7 +24,7 @@ sub next_async {
 
     my ($region, $scan) = defined $scanner_id ? () : @$self{ qw ( region scan ) };
 
-    return $node->_scan( $region, $scan, $scanner_id, $number_of_rows, $next_call_seq, $close_scanner )
+    return $node->_scan( $region, $scan, $scanner_id, $number_of_rows, $next_call_seq)
         ->then( sub {
 
                 my ($scan_response) = @_;
