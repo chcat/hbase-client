@@ -50,20 +50,16 @@ sub mutate_async {
             } );
 }
 
-sub _scan_first_async {
+sub scan {
 
     my ($self, $table, $scan, $number_of_rows) = @_;
 
-    my $row = $scan->{start_row} // '';
-
-    return $self->_get_region_and_node( $table, $row )
-        ->then( sub {
-
-                my ($region, $node) = @_;
-
-                return $node->scan_first_async( $region, $scan, $number_of_rows );
-
-            } );
+    return HBase::Client::RegionScanner->new(
+            node                => $self,
+            region              => $region,
+            scan                => $scan,
+            number_of_rows      => $number_of_rows,
+        );
 
 }
 
