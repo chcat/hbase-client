@@ -37,7 +37,7 @@ sub _get_region_scanner {
 
                 my ($region, $node) = @_;
 
-                return $node->scan( $region, $scan, $number_of_rows );
+                return $node->scan( $region, $self->{scan}, $self->{number_of_rows} );
 
             } );
 
