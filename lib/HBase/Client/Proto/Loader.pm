@@ -22,6 +22,7 @@ my $initialized //= do {
             RPC.proto
             Comparator.proto
             Filter.proto
+            MapReduce.proto
             Client.proto
         );
 
