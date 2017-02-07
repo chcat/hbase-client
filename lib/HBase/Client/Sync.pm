@@ -27,7 +27,7 @@ sub sync {
 
             $done->recv;
 
-            $error = $error->encode_json if (blessed $error)
+            $error = $error->encode_json if blessed $error;
 
             die $error if defined $error;
 
