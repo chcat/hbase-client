@@ -11,7 +11,7 @@ sub new {
             %args,
             next_call_seq => 0,
             start_row     => $args{scan}->{start_row} // '',
-            stop_row      => $args{scan}->{stop_row} // '',
+            stop_row      => $args{scan}->{stop_row},
         }, $class;
 
     return $self;

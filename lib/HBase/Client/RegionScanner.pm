@@ -42,7 +42,7 @@ sub next_async {
 
 sub close {
 
-
+    #TODO send close signal to release the scanner
 
 }
 

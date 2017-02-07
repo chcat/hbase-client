@@ -24,9 +24,9 @@ sub new {
 
     $connection->set_on_read( sub { $self->_on_read( @_ ) } );
 
-    $connection->connect();
+    $connection->connect;
 
-    $self->_handshake();
+    $self->_handshake;
 
     return $self;
 
@@ -95,7 +95,7 @@ sub _handshake {
 
     my $greeting = pack ('a*CCNa*', 'HBas', 0, 80, length $header, $header);
 
-    $self->{connection}->write( sub { $self->_connected() }, \$greeting );
+    $self->{connection}->write( sub { $self->_connected }, \$greeting );
 
     return;
 
@@ -127,15 +127,15 @@ sub _on_read {
 
         my $header = HBase::Client::Proto::ResponseHeader->decode( $header_enc );
 
-        if ( $header->has_call_id() and my $call = delete $self->{calls}->{ $header->get_call_id() } ){
+        if ( $header->has_call_id and my $call = delete $self->{calls}->{ $header->get_call_id } ){
 
             undef $call->{timeout_watcher};
 
             my $deferred = $call->{deferred};
 
-            if ( $header->has_exception() ){
+            if ( $header->has_exception ){
 
-                $deferred->reject( $header->get_exception() );
+                $deferred->reject( $header->get_exception );
 
             } else {
 
@@ -147,7 +147,7 @@ sub _on_read {
 
             # Got a response to a call that we forgot or never did. TODO
 
-            warn $header->encode_json(); #TODO
+            warn $header->encode_json; #TODO
 
         }
 
@@ -159,7 +159,7 @@ sub _try_read_frame {
 
     my ($self) = @_;
 
-    my $frame_length = $self->{frame_length} //= $self->_try_read_int();
+    my $frame_length = $self->{frame_length} //= $self->_try_read_int;
 
     my $frame_ref = $self->_try_read_bytes( $frame_length );
 
