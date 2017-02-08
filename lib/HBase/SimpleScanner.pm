@@ -5,7 +5,16 @@ use warnings;
 
 use parent 'HBase::Scanner';
 
-sub new { shift->SUPER::new( @_ ); }
+sub new {
+
+    my ($class, %args) = @_;
+
+    my $self = $class->SUPER::new( %args );
+
+    $self->{multi_versions} = $args{scan}->{max_versions} > 1;
+
+    return $self;
+}
 
 sub next_async {
 
@@ -20,12 +29,10 @@ sub next_async {
 
                 my $map;
 
-                $self->{client}->transform_cell_array( $_->get_cell, $multi_versions, $map ) for $response->get_results;
+                $self->{client}->transform_cell_array( $_->get_cell, $self->{multi_versions}, $map ) for $response->get_results;
 
                 return $map;
 
             } );
 
 }
-
-1;

@@ -23,7 +23,14 @@ sub mutate_async {
 
 sub scan {
 
-    return HBase::SimpleScanner->new( %{shift->SUPER::scan( @_ )} );
+    my ($self, $table, $scan, $number_of_rows) = @_;
+
+    return HBase::SimpleScanner->new(
+            client          => $self,
+            table           => $table,
+            scan            => $scan,
+            number_of_rows  => $number_of_rows,
+        );
 
 }
 

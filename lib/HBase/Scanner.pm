@@ -5,7 +5,15 @@ use warnings;
 
 use HBase::Client::Sync;
 
-sub new { return bless {@_[1..$#_]}, $_[0]; }
+sub new {
+
+    my ($class, %args) = @_;
+
+    return bless {
+            scanner => $args{client}->_cluster->scan( $args{table}, $args{scan}, $args{number_of_rows} // 1000 ),
+        }, $class;
+
+}
 
 sub next_async {
 

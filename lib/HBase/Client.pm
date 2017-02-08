@@ -37,15 +37,14 @@ sub new {
 
 }
 
-sub get_async {
+sub get_async { shift->_cluster->get_async( @_ ); }
 
-    shift->{cluster}->get_async( @_ );
+sub mutate_async { shift->_cluster->mutate_async( @_ ); }
 
-}
+SYNC_METHODS: {
 
-sub mutate_async {
-
-    shift->{cluster}->mutate_async( @_ );
+    *{get} = sync( sub { shift->get_async( @_ ) } );
+    *{mutate} = sync( sub { shift->mutate_async( @_ ) } );
 
 }
 
@@ -54,18 +53,15 @@ sub scan {
     my ($self, $table, $scan, $number_of_rows) = @_;
 
     return HBase::Scanner->new(
-            client      => $self,
-            scanner     => $self->{cluster}->scan( $table, $scan, $number_of_rows // 1000 ),
+            client          => $self,
+            table           => $table,
+            scan            => $scan,
+            number_of_rows  => $number_of_rows,
         );
 
 }
 
-SYNC_METHODS: {
-
-    *{get} = sync( sub { shift->get_async( @_ ) } );
-    *{mutate} = sync( sub { shift->mutate_async( @_ ) } );
-
-}
+sub _cluster { shift->{cluster}; }
 
 sub DESTROY {
     local $@;
