@@ -53,7 +53,7 @@ sub scan {
 
     my ($self, $table, $scan, $number_of_rows) = @_;
 
-    return HBase::Client::Scanner->new(
+    return HBase::Scanner->new(
             client      => $self,
             scanner     => $self->{cluster}->scan( $table, $scan, $number_of_rows // 1000 ),
         );
