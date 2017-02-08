@@ -23,7 +23,7 @@ sub mutate_async {
 
 sub scan {
 
-    return HBase::SimpleScanner->new( @{shift->SUPER::scan( @_ )} );
+    return HBase::SimpleScanner->new( %{shift->SUPER::scan( @_ )} );
 
 }
 
