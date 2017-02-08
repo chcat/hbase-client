@@ -5,6 +5,8 @@ use warnings;
 
 use parent 'HBase::Client';
 
+sub new { shift->SUPER::new( @_ ); }
+
 sub get_async {
 
     shift->SUPER::get_async( @_ );
@@ -88,6 +90,8 @@ use v5.14;
 use warnings;
 
 use parent 'HBase::Scanner';
+
+sub new { shift->SUPER::new( @_ ); }
 
 sub next_async {
 
