@@ -20,7 +20,7 @@ sub next_async {
 
     my $self = shift;
 
-    return $self->SUPER::get_async( @_ )
+    return $self->SUPER::next_async( @_ )
         ->then( sub {
 
                 my ($response) = @_;
