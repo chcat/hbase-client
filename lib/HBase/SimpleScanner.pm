@@ -20,8 +20,6 @@ sub next_async {
 
     my $self = shift;
 
-    my $multi_versions = $_[0]->get_max_versions > 1;
-
     return $self->SUPER::get_async( @_ )
         ->then( sub {
 
