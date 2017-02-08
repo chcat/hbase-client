@@ -36,3 +36,5 @@ sub next_async {
             } );
 
 }
+
+1;
