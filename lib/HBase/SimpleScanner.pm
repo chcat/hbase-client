@@ -27,7 +27,7 @@ sub next_async {
 
                 my $map;
 
-                $self->{client}->transform_cell_array( $_->get_cell, $self->{multi_versions}, $map ) for $response->get_results;
+                $self->{client}->transform_cell_array( $_->get_cell, $self->{multi_versions}, $map ) for $response->get_results_list;
 
                 return $map;
 
