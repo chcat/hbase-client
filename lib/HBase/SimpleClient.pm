@@ -38,7 +38,7 @@ sub transform_cell_array {
 
     my ($self, $cells, $multi_versions, $map) = @_;
 
-    return $multi_versions ? $self->transform_cell_array_multi_versions( $cells, $map ) : transform_cell_array_single_version( $cells, $map );
+    return $multi_versions ? $self->transform_cell_array_multi_versions( $cells, $map ) : $self->transform_cell_array_single_version( $cells, $map );
 
 }
 

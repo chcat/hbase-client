@@ -11,7 +11,7 @@ sub new {
 
     my $self = $class->SUPER::new( %args );
 
-    $self->{multi_versions} = $args{scan}->{max_versions} > 1;
+    $self->{multi_versions} = $args{scan}->{max_versions} // 1 > 1;
 
     return $self;
 }
