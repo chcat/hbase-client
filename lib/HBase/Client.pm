@@ -8,8 +8,9 @@ our $VERSION = '0.0.1';
 use HBase::Client::Sync;
 use HBase::Client::Cluster;
 use HBase::Client::NodePool;
-use HBase::Client::Scanner;
 use HBase::Client::ZookeeperMetaHolderLocator;
+
+use HBase::Scanner;
 
 sub new {
 
@@ -61,8 +62,8 @@ sub scan {
 
 SYNC_METHODS: {
 
-    *{get} = sync( \&get_async );
-    *{mutate} = sync( \&mutate_async );
+    *{get} = sync( sub { shift->get_async( @_ ) } );
+    *{mutate} = sync( sub { shift->mutate_async( @_ ) } );
 
 }
 
