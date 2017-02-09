@@ -25,11 +25,11 @@ sub next_async {
 
                 my ($response) = @_;
 
-                my $map;
+                my $rows = {};
 
-                $self->{client}->transform_cell_array( $_->get_cell_list, $self->{multi_versions}, $map ) for @{$response->get_results_list};
+                $self->{client}->transform_cell_array( $_->get_cell_list, $self->{multi_versions}, $rows ) for @{$response->get_results_list};
 
-                return $map;
+                return $rows;
 
             } );
 
