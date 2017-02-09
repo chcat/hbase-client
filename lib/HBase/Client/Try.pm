@@ -45,7 +45,7 @@ sub _try_loop {
 
             if ($error == RETRY){
 
-                $self->_try_loop( $sub, $deferred );
+                _try_loop( $sub, $deferred );
 
             } else {
 
