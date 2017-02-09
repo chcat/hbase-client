@@ -4,6 +4,8 @@ use v5.14;
 use warnings;
 
 use HBase::Client::Proto::Loader;
+use Scalar::Util qw( blessed );
+
 use Exporter 'import';
 
 our @EXPORT= qw(
@@ -13,7 +15,20 @@ our @EXPORT= qw(
         region_name
         region_name_new_format
         cell_array_to_row_map
+        exception
     );
+
+sub exception {
+
+    my ($error) = @_;
+
+    my $class = blessed $error // 'unknown';
+
+    return $error->get_exception_class_name if $class eq 'HBase::Client::Proto::ExceptionResponse';
+
+    return $class;
+
+}
 
 sub meta_table_name {
 

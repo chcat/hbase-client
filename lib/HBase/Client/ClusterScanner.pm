@@ -3,6 +3,9 @@ package HBase::Client::ClusterScanner;
 use v5.14;
 use warnings;
 
+use HBase::Client::Utils;
+use HBase::Client::Try;
+
 sub new {
 
     my ($class, %args) = @_;
@@ -20,11 +23,35 @@ sub new {
 
 sub next_async {
 
-    my ($self) = @_;
+    try( sub {
 
-    my $scanner = $self->{scanner} //= $self->_get_region_scanner;
+            my ($self) = @_;
 
-    return $scanner->then( sub { return shift->next_async; } );
+            my $scanner = $self->{scanner} //= $self->_get_region_scanner;
+
+            $scanner
+                ->then( sub {
+
+                        return shift->next_async;
+
+                    } )
+                ->catch( sub {
+
+                        my $error = (@_);
+
+                        if (exception($error) eq 'org.apache.hadoop.hbase.UnknownScannerException' ){
+
+                            retry;
+
+                        } else {
+
+                            die $error;
+
+                        }
+
+                    } );
+
+        } );
 
 }
 
