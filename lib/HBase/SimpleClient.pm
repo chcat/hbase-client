@@ -50,11 +50,13 @@ sub transform_cell_array_multi_versions {
 
     for my $cell (@$cells){
 
-        my $values = $map->{ $cell->get_row }->{ $cell->get_family . ':' . $cell->get_qualifier  } //= [];
+        my $values_holder_ref = \$map->{ $cell->get_row }->{ $cell->get_family . ':' . $cell->get_qualifier  };
 
-        push @$values, $cell;
+        $$values_holder_ref //= [];
 
-        $to_sort{\$values} = \$values;
+        push @$$values_holder_ref, $cell;
+
+        $to_sort{$values_holder_ref} = $values_holder_ref;
 
     }
 

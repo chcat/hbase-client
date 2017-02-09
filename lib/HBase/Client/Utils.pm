@@ -72,7 +72,7 @@ sub cell_array_to_row_map {
 
         push @$values, $cell;
 
-        $to_sort{\$values} = \$values;
+        $to_sort{$values} = \$values;
 
     }
 
