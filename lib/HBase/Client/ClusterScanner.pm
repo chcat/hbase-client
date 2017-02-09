@@ -37,9 +37,11 @@ sub next_async {
                     } )
                 ->catch( sub {
 
-                        my $error = (@_);
+                        my ($error) = @_;
 
                         if (exception($error) eq 'org.apache.hadoop.hbase.UnknownScannerException' ){
+
+                            undef $self->{scanner};
 
                             retry;
 
