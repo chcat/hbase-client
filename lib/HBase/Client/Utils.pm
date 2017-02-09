@@ -72,11 +72,11 @@ sub cell_array_to_row_map {
 
         push @$values, $cell;
 
-        $to_sort{$values} = \$values;
+        $to_sort{$values} = $values;
 
     }
 
-    $$_ = [ sort { $b->get_timestamp <=> $a->get_timestamp } @{$$_} ] for (values %to_sort);
+    @$_ = sort { $b->get_timestamp <=> $a->get_timestamp } @$_ for values %to_sort;
 
     return $map;
 

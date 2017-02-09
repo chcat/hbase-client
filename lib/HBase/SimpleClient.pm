@@ -50,17 +50,15 @@ sub transform_cell_array_multi_versions {
 
     for my $cell (@$cells){
 
-        my $values_holder_ref = \$map->{ $cell->get_row }->{ $cell->get_family . ':' . $cell->get_qualifier  };
+        my $values = $map->{ $cell->get_row }->{ $cell->get_family . ':' . $cell->get_qualifier  } //= [];
 
-        $$values_holder_ref //= [];
+        push @$values, $cell;
 
-        push @$$values_holder_ref, $cell;
-
-        $to_sort{$values_holder_ref} = $values_holder_ref;
+        $to_sort{$values} = $values;
 
     }
 
-    $$_ = [ map { $self->transform_cell( $_ ) } sort { $b->get_timestamp <=> $a->get_timestamp } @{$$_} ] for (values %to_sort);
+    @$_ = map { $self->transform_cell( $_ ) } sort { $b->get_timestamp <=> $a->get_timestamp } @$_ for values %to_sort;
 
     return $map;
 
