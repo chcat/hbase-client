@@ -23,9 +23,9 @@ sub new {
 
 sub next_async {
 
-    try( sub {
+    my ($self) = @_;
 
-            my ($self) = @_;
+    try( sub {
 
             my $scanner = $self->{scanner} //= $self->_get_region_scanner;
 
