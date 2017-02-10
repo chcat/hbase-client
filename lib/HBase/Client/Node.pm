@@ -25,7 +25,7 @@ sub connect {
 
     my ($self) = @_;
 
-    return $self->{rpc}->connect->then{ sub { $self } };
+    return $self->{rpc}->connect->then( sub { $self } );
 
 }
 
