@@ -70,6 +70,8 @@ sub _get_region_scanner {
 
     my ($self) = @_;
 
+    $self->{scan}->{start_row} = $self->{start_row};
+
     return $self->{cluster}->_get_region_and_node( $self->{table}, $self->{start_row} )
         ->then( sub {
 
