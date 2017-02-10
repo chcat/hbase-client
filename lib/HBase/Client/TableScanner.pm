@@ -51,7 +51,7 @@ sub next_async {
 
                         undef $self->{scanner};
 
-                        retry( cause => $error );
+                        retry( count => 3, cause => $error );
 
                     } else {
 
@@ -62,7 +62,7 @@ sub next_async {
                 } );
 
 
-        };
+    };
 
 }
 

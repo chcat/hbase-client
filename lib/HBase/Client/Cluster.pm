@@ -29,13 +29,33 @@ sub get_async {
 
     my ($self, $table, $get) = @_;
 
-    return $self->_get_region_and_node( $table, $get->{row} )->then( sub {
+    try {
 
-                my ($region, $node) = @_;
+        return $self->_get_region_and_node( $table, $get->{row} )
+            ->then( sub {
 
-                return $node->get_async( $region, $get );
+                    my ($region, $node) = @_;
 
-            } );
+                    return $node->get_async( $region, $get );
+
+                } )
+            ->catch( sub {
+
+                    my ($error) = @_;
+
+                    if (exception($error) eq 'org.apache.hadoop.hbase.NotServingRegionException' ){
+
+                        retry( count => 3, cause => $error );
+
+                    } else {
+
+                        die $error;
+
+                    }
+
+                } );
+
+    };
 
 }
 
@@ -43,13 +63,33 @@ sub mutate_async {
 
     my ($self, $table, $mutation, $condition, $nonce_group) = @_;
 
-    return $self->_get_region_and_node( $table, $mutation->{row} )->then( sub {
+    try {
 
-                my ($region, $node) = @_;
+        return $self->_get_region_and_node( $table, $mutation->{row} )
+            ->then( sub {
 
-                return $node->mutate_async( $region, $mutation, $condition, $nonce_group );
+                    my ($region, $node) = @_;
 
-            } );
+                    return $node->mutate_async( $region, $mutation, $condition, $nonce_group );
+
+                } )
+            ->catch( sub {
+
+                    my ($error) = @_;
+
+                    if (exception($error) eq 'org.apache.hadoop.hbase.NotServingRegionException' ){
+
+                        retry( count => 3, cause => $error );
+
+                    } else {
+
+                        die $error;
+
+                    }
+
+                } );
+    };
+
 }
 
 sub scan {
@@ -149,13 +189,13 @@ sub _locate_meta_holder {
     my ($self) = @_;
 
     try {
-            return $self->{meta_holder_locator}->locate
-                ->catch( sub {
+        return $self->{meta_holder_locator}->locate
+            ->catch( sub {
 
-                        retry(count => 3, cause => $_[0]);
+                    retry(count => 3, cause => $_[0]);
 
-                    } );
-        };
+                } );
+    };
 
 }
 
@@ -190,7 +230,7 @@ sub _handle_query_meta_response {
     my $region_info = HBase::Client::Proto::RegionInfo->decode( substr $region_info_encoded, 4 );
 
     return {
-            region_name        => $region_name,
+            region_name => $region_name,
             server      => $row->{info}->{server}->[0]->{value},
             start       => $region_info->get_start_key,
             end         => $region_info->get_end_key,
