@@ -22,23 +22,28 @@ sub locate {
 
     my ($self) = @_;
 
-    my $node = Net::ZooKeeper->new( $self->{quorum} )->get( $self->{path} );
-
-    my ( $magic, $id_length, $blob ) = unpack ( 'CNA*', $node );
-
-    die "Unexpected zookeeper $self->{zookeeper_quorum} hbase node $self->{zookeeper_path} content" unless $magic == 255;
-
-    my $server = HBase::Client::Proto::MetaRegionServer->decode( substr $blob, length('PBUF') + $id_length );
-
-    warn "Unexpected RPC version $server->get_rpc_version" unless $server->get_rpc_version == 0;
-
-    die "Meta holder is not ready" unless $server->get_state() == 3;
-
-    my $server = $server->get_server;
-
     my $deferred = deferred;
 
-    $deferred->resolve( $server->get_host_name .':'.$server->get_port );
+    eval {
+
+        my $node = Net::ZooKeeper->new( $self->{quorum} )->get( $self->{path} );
+
+        my ( $magic, $id_length, $blob ) = unpack ( 'CNA*', $node );
+
+        die "Unexpected zookeeper @{[$self->{zookeeper_quorum}]} hbase node @{[$self->{zookeeper_path}]} content" unless $magic == 255;
+
+        my $server_info = HBase::Client::Proto::MetaRegionServer->decode( substr $blob, length('PBUF') + $id_length );
+
+        warn "Unexpected RPC version @{[$server_info->get_rpc_version]}" unless $server_info->get_rpc_version == 0;
+
+        die "Meta holder is not ready" unless $server->get_state() == 3;
+
+        my $server = $server->get_server;
+
+        $deferred->resolve( $server->get_host_name .':'.$server->get_port );
+
+        1;
+    } or do { $deferred->reject($!) };
 
     return $deferred->promise;
 }
