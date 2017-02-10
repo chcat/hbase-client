@@ -39,7 +39,7 @@ sub next_async {
 
                     my ($response) = @_;
 
-                    my $last_row = $response->get_results( $response->results_size )->get_cell(0)->get_row;
+                    my $last_row = $response->get_results( $response->results_size - 1 )->get_cell(0)->get_row;
 
                     return $response;
 
