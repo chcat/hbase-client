@@ -50,13 +50,17 @@ sub _try_loop {
 
                 $state->{count}++;
 
-                _try_loop( $sub, $deferred, $state ) if !defined $error->{count} || $error->{count} <= $state->{count};
+                if (!defined $error->{count} || $error->{count} >= $state->{count}){
 
-            } else {
+                    return _try_loop( $sub, $deferred, $state ) ;
 
-                $deferred->reject( $error );
+                }
+
+                $error = $error->{cause};
 
             }
+
+            $deferred->reject( $error );
 
         } );
 

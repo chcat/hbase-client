@@ -71,7 +71,7 @@ sub _get_region_and_node {
 
      if ($table eq meta_table_name) {
 
-        return $self->_locate_meta_holder
+        return $self->_meta_holder
             ->then( sub {
 
                     my ($server) = @_;
@@ -111,7 +111,7 @@ sub _locate_region {
 
     my ($self, $table, $row) = @_;
 
-    return $self->_locate_meta_holder
+    return $self->_meta_holder
         ->then( sub {
 
                 my ($server) = @_;
@@ -136,15 +136,24 @@ sub _locate_region {
 
 }
 
+sub _meta_holder {
+
+    my ($self) = @_;
+
+    return $self->{meta_holder} //= $self->_locate_meta_holder;
+
+}
+
 sub _locate_meta_holder {
 
     my ($self) = @_;
 
-    return $self->{meta_holder} //= try {
-            $self->{meta_holder_locator}
-                ->locate
+    try {
+            return $self->{meta_holder_locator}->locate
                 ->catch( sub {
-                        retry(count => 3);
+
+                        retry(count => 3, cause => $_[0]);
+
                     } );
         };
 
