@@ -5,7 +5,6 @@ use warnings;
 
 use AnyEvent;
 use Exporter 'import';
-use Scalar::Util qw( blessed );
 
 our @EXPORT= qw(
         sync
@@ -26,8 +25,6 @@ sub sync {
                 ->finally( sub { $done->send; } );
 
             $done->recv;
-
-            $error = $error->encode_json if blessed $error;
 
             die $error if defined $error;
 

@@ -4,6 +4,7 @@ use v5.14;
 use warnings;
 
 use Promises qw( deferred );
+use Scalar::Util qw( blessed );
 use Exporter 'import';
 
 our @EXPORT= qw(
@@ -11,21 +12,23 @@ our @EXPORT= qw(
         retry
     );
 
-use constant RETRY => \0;
-
 sub retry {
 
-    die RETRY;
+    die HBase::Client::Try::Retry->new( @_ );
 
 }
 
-sub try {
+sub try (&) {
 
     my ($sub) = @_;
 
     my $deferred = deferred;
 
-    _try_loop( $sub, $deferred );
+    my $state = {
+            count => 0,
+        };
+
+    _try_loop( $sub, $deferred, $state );
 
     return $deferred->promise;
 
@@ -33,7 +36,7 @@ sub try {
 
 sub _try_loop {
 
-    my ($sub, $deferred ) = @_;
+    my ($sub, $deferred, $state ) = @_;
 
     $sub->()->done( sub {
 
@@ -43,9 +46,11 @@ sub _try_loop {
 
             my ($error) = @_;
 
-            if ($error == RETRY){
+            if ((blessed $error // '') eq 'HBase::Client::Try::Retry'){
 
-                _try_loop( $sub, $deferred );
+                $state->{count}++;
+
+                _try_loop( $sub, $deferred, $state ) if !defined $error->{count} || $error->{count} <= $state->{count};
 
             } else {
 
@@ -56,5 +61,12 @@ sub _try_loop {
         } );
 
 }
+
+package HBase::Client::Try::Retry;
+
+use v5.14;
+use warnings;
+
+sub new { bless { @_[1..$#_] }, $_[0]; }
 
 1;

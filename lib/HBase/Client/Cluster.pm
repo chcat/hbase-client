@@ -3,9 +3,10 @@ package HBase::Client::Cluster;
 use v5.14;
 use warnings;
 
-use HBase::Client::ClusterScanner;
+use HBase::Client::TableScanner;
 use HBase::Client::Proto::Loader;
 use HBase::Client::Utils;
+use HBase::Client::Try;
 
 sub new {
 
@@ -55,7 +56,7 @@ sub scan {
 
     my ($self, $table, $scan, $number_of_rows) = @_;
 
-    return HBase::Client::ClusterScanner->new(
+    return HBase::Client::TableScanner->new(
             cluster             => $self,
             table               => $table,
             scan                => $scan,
@@ -139,7 +140,13 @@ sub _locate_meta_holder {
 
     my ($self) = @_;
 
-    return $self->{meta_holder} //= $self->{meta_holder_locator}->locate;
+    return $self->{meta_holder} //= try {
+            $self->{meta_holder_locator}
+                ->locate
+                ->catch( sub {
+                        retry(count => 3);
+                    } );
+        };
 
 }
 

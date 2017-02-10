@@ -1,4 +1,4 @@
-package HBase::Client::ClusterScanner;
+package HBase::Client::TableScanner;
 
 use v5.14;
 use warnings;
@@ -25,35 +25,35 @@ sub next_async {
 
     my ($self) = @_;
 
-    try( sub {
+    try {
 
-            my $scanner = $self->{scanner} //= $self->_get_region_scanner;
+        my $scanner = $self->{scanner} //= $self->_get_region_scanner;
 
-            $scanner
-                ->then( sub {
+        return $scanner
+            ->then( sub {
 
-                        return shift->next_async;
+                    return shift->next_async;
 
-                    } )
-                ->catch( sub {
+                } )
+            ->catch( sub {
 
-                        my ($error) = @_;
+                    my ($error) = @_;
 
-                        if (exception($error) eq 'org.apache.hadoop.hbase.UnknownScannerException' ){
+                    if (exception($error) eq 'org.apache.hadoop.hbase.UnknownScannerException' ){
 
-                            undef $self->{scanner};
+                        undef $self->{scanner};
 
-                            retry;
+                        retry;
 
-                        } else {
+                    } else {
 
-                            die $error;
+                        die $error;
 
-                        }
+                    }
 
-                    } );
+                } );
 
-        } );
+        };
 
 }
 
