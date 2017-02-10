@@ -43,7 +43,7 @@ sub locate {
         $deferred->resolve( $server->get_host_name .':'.$server->get_port );
 
         1;
-    } or do { $deferred->reject($!) };
+    } or do { $deferred->reject("Error locating meta holder via zookeeper @{[$self->{quorum}]}@{[$self->{path}]}: $!") };
 
     return $deferred->promise;
 }

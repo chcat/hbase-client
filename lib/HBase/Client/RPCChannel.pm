@@ -32,6 +32,36 @@ sub new {
 
 }
 
+sub connect {
+
+    my ( $self ) = @_;
+
+    my $connection =
+
+    my $deferred = deferred;
+
+    $self->{connection}->connect( sub {
+
+            my $header = HBase::Client::Proto::ConnectionHeader->new( {
+                    service_name => 'ClientService',
+                    user_info    => {
+
+                            effective_user  => 'Gandalf', #TODO
+
+                        },
+
+                } )->encode;
+
+            my $greeting = pack ('a*CCNa*', 'HBas', 0, 80, length $header, $header);
+
+            $self->{connection}->write( sub { $self->_connected }, \$greeting );
+
+        } );
+
+    return $deferred->promise;
+
+}
+
 sub call_async {
 
     my ( $self, $method, $param, $options ) = @_;
