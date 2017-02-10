@@ -23,9 +23,9 @@ sub new {
 
 sub connect {
 
-    my ($self, $cb ) = @_;
+    my ($self) = @_;
 
-    $cb->();
+    return $self->{rpc}->connect->then{ sub { $self } };
 
 }
 

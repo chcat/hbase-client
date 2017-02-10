@@ -13,10 +13,17 @@ our @EXPORT= qw(
         meta_region_specifier
         region_specifier
         region_name
+        next_key
         region_name_new_format
         cell_array_to_row_map
         exception
     );
+
+sub next_key {
+
+    return pack ('a*C', $_[0], 0);
+
+}
 
 sub exception {
 

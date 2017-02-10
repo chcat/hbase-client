@@ -45,25 +45,7 @@ sub _discover_node {
 
     my $node = HBase::Client::Node->new( rpc => $rpc );
 
-    my $deferred = deferred;
-
-    $node->connect( sub {
-
-            my ($error) = @_;
-
-            if (defined $error){
-
-                $deferred->reject( $error );
-
-            } else {
-
-                $deferred->resolve( $node );
-
-            }
-
-        } );
-
-    return $deferred->promise;
+    return $node->connect;
 
 }
 

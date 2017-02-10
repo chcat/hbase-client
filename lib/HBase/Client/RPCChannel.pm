@@ -22,12 +22,6 @@ sub new {
             timeout     => $args{timeout} // 3,
         }, $class;
 
-    $connection->set_on_read( sub { $self->_on_read( @_ ) } );
-
-    $connection->connect;
-
-    $self->_handshake;
-
     return $self;
 
 }
@@ -36,25 +30,51 @@ sub connect {
 
     my ( $self ) = @_;
 
-    my $connection =
+    my $connection = $self->{connection};
+
+    $connection->set_on_read( sub { $self->_on_read( @_ ) } );
 
     my $deferred = deferred;
 
-    $self->{connection}->connect( sub {
+    $connection->connect( sub {
 
-            my $header = HBase::Client::Proto::ConnectionHeader->new( {
-                    service_name => 'ClientService',
-                    user_info    => {
+            my ($error) = @_;
 
-                            effective_user  => 'Gandalf', #TODO
+            if ($error){
 
-                        },
+                $deferred->reject( "Connection problem: $error" );
 
-                } )->encode;
+            } else{
 
-            my $greeting = pack ('a*CCNa*', 'HBas', 0, 80, length $header, $header);
+                my $header = HBase::Client::Proto::ConnectionHeader->new( {
+                        service_name => 'ClientService',
+                        user_info    => {
 
-            $self->{connection}->write( sub { $self->_connected }, \$greeting );
+                                effective_user  => 'Gandalf', #TODO
+
+                            },
+
+                    } )->encode;
+
+                my $greeting = pack ('a*CCNa*', 'HBas', 0, 80, length $header, $header);
+
+                $self->{connection}->write( sub {
+
+                        my ($error) = @_;
+
+                        if ($error){
+
+                            $deferred->reject( "Connection problem: $error" );
+
+                        } else {
+
+                            $deferred->resolve();
+
+                        }
+
+                    }, \$greeting );
+
+            }
 
         } );
 
@@ -108,30 +128,6 @@ sub _timeout_call {
     return;
 
 }
-
-sub _handshake {
-
-    my ( $self )= @_;
-
-    my $header = HBase::Client::Proto::ConnectionHeader->new( {
-            service_name => 'ClientService',
-            user_info    => {
-
-                    effective_user  => 'Gandalf', #TODO
-
-                },
-
-        } )->encode;
-
-    my $greeting = pack ('a*CCNa*', 'HBas', 0, 80, length $header, $header);
-
-    $self->{connection}->write( sub { $self->_connected }, \$greeting );
-
-    return;
-
-}
-
-sub _connected { $_[0]->{connected} = 1; }
 
 sub _write_as_frame {
 
