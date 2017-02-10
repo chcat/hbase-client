@@ -36,9 +36,9 @@ sub locate {
 
         warn "Unexpected RPC version @{[$server_info->get_rpc_version]}" unless $server_info->get_rpc_version == 0;
 
-        die "Meta holder is not ready" unless $server->get_state() == 3;
+        die "Meta holder is not ready" unless $server_info->get_state() == 3;
 
-        my $server = $server->get_server;
+        my $server = $server_info->get_server;
 
         $deferred->resolve( $server->get_host_name .':'.$server->get_port );
 
