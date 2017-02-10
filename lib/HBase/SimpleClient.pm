@@ -11,7 +11,15 @@ sub new { shift->SUPER::new( @_ ); }
 
 sub get_async {
 
-    shift->SUPER::get_async( @_ );
+    my ($self, $table, $get) = @_;
+
+    $self->SUPER::get_async( $table, $get )->then( sub {
+
+            my ($response) = @_;
+
+            return $self->transform_cell_array( $response->get_result->get_cell_list, $get->{max_versions} > 1);
+
+        } );
 
 }
 

@@ -39,7 +39,7 @@ sub next_async {
 
                     my ($response) = @_;
 
-                    $self->{start_row} = next_key( $response->get_results( $response->results_size - 1 )->get_cell(0)->get_row );
+                    $self->{start_row} = next_key( $response->get_results( $response->results_size - 1 )->get_cell(0)->get_row ) if $response->results_size;
 
                     return $response;
 
