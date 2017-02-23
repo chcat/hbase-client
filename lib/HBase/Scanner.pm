@@ -11,7 +11,7 @@ sub new {
 
     return bless {
             client  => $args{client},
-            scanner => $args{client}->_cluster->scan( $args{table}, $args{scan}, $args{number_of_rows} // 1000 ),
+            scanner => $args{client}->_cluster->scanner( $args{table}, $args{scan}, $args{number_of_rows} // 1000 ),
         }, $class;
 
 }
