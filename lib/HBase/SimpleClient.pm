@@ -17,7 +17,7 @@ sub get_async {
 
             my ($response) = @_;
 
-            return $self->transform_cell_array( $response->get_result->get_cell_list, $get->{max_versions} > 1);
+            return $self->transform_cell_array( $response->get_result->get_cell_list, $get->{max_versions} // 1 > 1);
 
         } );
 
@@ -42,15 +42,15 @@ sub scan {
 
 }
 
-sub transform_cell_array {
+sub _transform_cell_array {
 
     my ($self, $cells, $multi_versions, $map) = @_;
 
-    return $multi_versions ? $self->transform_cell_array_multi_versions( $cells, $map ) : $self->transform_cell_array_single_version( $cells, $map );
+    return $multi_versions ? $self->_transform_cell_array_multi_versions( $cells, $map ) : $self->_transform_cell_array_single_version( $cells, $map );
 
 }
 
-sub transform_cell_array_multi_versions {
+sub _transform_cell_array_multi_versions {
 
     my ($self, $cells, $map) = @_;
 
@@ -66,26 +66,26 @@ sub transform_cell_array_multi_versions {
 
     }
 
-    @$_ = map { $self->transform_cell( $_ ) } sort { $b->get_timestamp <=> $a->get_timestamp } @$_ for values %to_sort;
+    @$_ = map { $self->_transform_cell( $_ ) } sort { $b->get_timestamp <=> $a->get_timestamp } @$_ for values %to_sort;
 
     return $map;
 
 }
 
-sub transform_cell_array_single_version {
+sub _transform_cell_array_single_version {
 
     my ($self, $cells, $map) = @_;
 
     for my $cell (@$cells){
 
-        $map->{ $cell->get_row }->{ $cell->get_family . ':' . $cell->get_qualifier } =  $self->transform_cell($cell, 1);
+        $map->{ $cell->get_row }->{ $cell->get_family . ':' . $cell->get_qualifier } =  $self->_transform_cell($cell, 1);
 
     }
 
     return $map;
 }
 
-sub transform_cell {
+sub _transform_cell {
 
     my ($self, $cell, $flatten) = @_;
 

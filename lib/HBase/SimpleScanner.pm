@@ -25,9 +25,11 @@ sub next_async {
 
                 my ($response) = @_;
 
+                return undef unless $response and $response->has_results_list;
+
                 my $rows = {};
 
-                $self->{client}->transform_cell_array( $_->get_cell_list, $self->{multi_versions}, $rows ) for @{$response->get_results_list};
+                $self->{client}->_transform_cell_array( $_->get_cell_list, $self->{multi_versions}, $rows ) for @{$response->get_results_list};
 
                 return $rows;
 

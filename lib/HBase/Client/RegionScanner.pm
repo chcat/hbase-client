@@ -18,20 +18,25 @@ sub new {
 
 sub next_async {
 
-    my ($self) = @_;
+    my ($self, $exclude_start) = @_;
 
     my ($node, $scanner_id, $number_of_rows, $next_call_seq) = @$self{ qw ( node scanner_id number_of_rows next_call_seq ) };
-
     my ($region, $scan) = defined $scanner_id ? () : @$self{ qw ( region scan ) };
 
-    return $node->_scan( $region, $scan, $scanner_id, $number_of_rows, $next_call_seq)
+    return $node->scan_async( $region, $scan, $scanner_id, $number_of_rows + !!$exclude_start, $next_call_seq)
         ->then( sub {
 
                 my ($scan_response) = @_;
 
                 $self->{next_call_seq} = $next_call_seq + 1;
-
                 $self->{scanner_id} = $scan_response->get_scanner_id unless defined $scanner_id;
+
+                if ($exclude_start and my @results = @{$response->get_results_list}){
+                    if ($results[0]->get_cell(0)->get_row eq $scan->{start_row}){
+                        shift @results;
+                        $response->set_results_list( [@results] );
+                    }
+                }
 
                 return $scan_response;
 

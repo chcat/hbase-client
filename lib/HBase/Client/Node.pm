@@ -58,20 +58,7 @@ sub mutate_async {
 
 }
 
-sub scan {
-
-    my ($self, $region, $scan, $number_of_rows) = @_;
-
-    return HBase::Client::RegionScanner->new(
-            node                => $self,
-            region              => $region,
-            scan                => $scan,
-            number_of_rows      => $number_of_rows,
-        );
-
-}
-
-sub _scan {
+sub scan_async {
 
     my ($self, $region, $scan, $scanner_id, $number_of_rows, $next_call_seq, $close_scanner) = @_;
 

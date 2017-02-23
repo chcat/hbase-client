@@ -84,6 +84,8 @@ sub cell_array_to_row_map {
 
     my ($cells) = @_;
 
+    return {} unless @$cells;
+
     my $map;
 
     my %to_sort;
