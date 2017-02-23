@@ -39,7 +39,7 @@ sub next_async {
 
                     my ($scanner) = @_;
 
-                    $self->{completed} = 1 and return undef unless $scanner;
+                    $self->{completed} = 1 && return undef unless $scanner;
 
                     return $scanner->next_async( $self->{exclude_start} );
 
