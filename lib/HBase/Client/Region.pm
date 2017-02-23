@@ -87,6 +87,8 @@ sub region_after {
 
 GETTERS: {
 
+    no strict 'refs';
+
     *{$_} = sub { shift->{$_} } for qw( name start end server table );
 
 }
