@@ -108,7 +108,9 @@ sub get_region_before {
 
     my ($self, $region) = @_;
 
-    return deferred->resolve(undef)->promise if $region->table eq meta_table_name or $region->start eq '';
+    my $table = $region->table;
+
+    return deferred->resolve(undef)->promise if $table eq meta_table_name or $region->start eq '';
 
     my $scan = {
             start_row   => $region->name,
@@ -134,7 +136,9 @@ sub get_region_after {
 
     my ($self, $region) = @_;
 
-    return deferred->resolve(undef)->promise if $region->table eq meta_table_name or $region->end eq '';
+    my $table = $region->table;
+
+    return deferred->resolve(undef)->promise if $table eq meta_table_name or $region->end eq '';
 
     return get_region( $table, $region->end );
 
