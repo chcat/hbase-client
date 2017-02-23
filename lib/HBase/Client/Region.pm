@@ -93,6 +93,8 @@ GETTERS: {
 
 }
 
+sub specifier { region_specifier( shift->name ) }
+
 sub _get_node {
     my ($self) = @_;
 
