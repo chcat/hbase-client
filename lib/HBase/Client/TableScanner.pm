@@ -99,7 +99,7 @@ sub _new_region_scanner {
         ->then( sub {
                 my ($region) = @_;
 
-                return undef unless $region or ;
+                return undef unless $region;
 
                 return $region->scanner( $self->{scan}, $self->{number_of_rows} );
 
