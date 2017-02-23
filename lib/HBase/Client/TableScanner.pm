@@ -132,8 +132,7 @@ sub _pick_next_region {
 
                 return $reversed ? $region->region_before : $region->region_after;
 
-            } )
-
+            } );
 
     return 1;
 
