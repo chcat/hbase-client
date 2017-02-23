@@ -160,7 +160,7 @@ sub get_region {
 
     return $meta_region->get_async( $get )
         ->then( sub {
-                my ($result) = @_;
+                my ($response) = @_;
 
                 my $region = $self->_parse_region_from_row( $response->get_result );
                 # filter out regions of other tables for the case the target table does not exists
