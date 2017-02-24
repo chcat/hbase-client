@@ -25,7 +25,7 @@ sub next_async {
 
                 my ($response) = @_;
 
-                return undef unless $response and $response->has_results;
+                return undef unless $response;
 
                 my $rows = {};
 
