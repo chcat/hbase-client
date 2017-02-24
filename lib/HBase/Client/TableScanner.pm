@@ -48,7 +48,7 @@ sub next_async {
 
                     my ($response) = @_;
 
-                    if (my @results = @{$response->get_results_list}){
+                    if (my @results = @{$response->get_results_list // []}){
                         # update the last seen row to be able to recover after scanner loss
                         $self->{current_start} = $results[-1]->get_cell(0)->get_row;
                         $self->{exclude_start} = 1,

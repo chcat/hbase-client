@@ -33,7 +33,7 @@ sub next_async {
                 $self->{next_call_seq} = $next_call_seq + 1;
                 $self->{scanner_id} = $response->get_scanner_id if $first_call;
 
-                if ($first_call and $exclude_start and my @results = @{$response->get_results_list}){
+                if ($first_call and $exclude_start and my @results = @{$response->get_results_list // []}){
                     if ($results[0]->get_cell(0)->get_row eq $scan->{start_row}){
                         shift @results;
                         $response->set_results_list( [@results] );
