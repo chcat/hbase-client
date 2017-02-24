@@ -28,9 +28,9 @@ sub next_async {
 
     my ($self) = @_;
 
-    return deferred->resolve(undef)->promise if $self->{completed};
-
     try {
+
+        done(undef) if $self->{completed};
 
         my $scanner = $self->{scanner} //= $self->_new_region_scanner;
 
@@ -39,7 +39,7 @@ sub next_async {
 
                     my ($scanner) = @_;
 
-                    $self->{completed} = 1 && return undef unless $scanner;
+                    $self->{completed} = 1 && done(undef) unless $scanner;
 
                     return $scanner->next_async;
 
@@ -59,6 +59,8 @@ sub next_async {
                         # no rows left in the region?
                         warn 'Empty scan result yet more results in the region'
                             and retry( count => 1, cause => 'More rows expected' ) if $response->get_more_results_in_region;
+
+                        undef $self->{scanner};
 
                         $self->_pick_next_region;
 
@@ -128,7 +130,7 @@ sub _pick_next_region {
 
                 my ($region) = @_;
 
-                return undef if $reversed && $region->start le $stop_row || !$reversed && $region->end gt $stop_row;
+                return undef if $stop_row && ($reversed && $region->start le $stop_row || !$reversed && $region->end gt $stop_row);
 
                 return $reversed ? $region->region_before : $region->region_after;
 

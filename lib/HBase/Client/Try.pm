@@ -10,11 +10,18 @@ use Exporter 'import';
 our @EXPORT= qw(
         try
         retry
+        done
     );
 
 sub retry {
 
     die HBase::Client::Try::Retry->new( @_ );
+
+}
+
+sub done {
+
+    die HBase::Client::Try::Done->new( @_ );
 
 }
 
@@ -46,7 +53,15 @@ sub _try_loop {
 
             my ($error) = @_;
 
-            if ((blessed $error // '') eq 'HBase::Client::Try::Retry'){
+            my $error_type = blessed $error // '';
+
+            if ($error_type eq 'HBase::Client::Try::Done'){
+
+                $deferred->resolve( @$error );
+
+                return;
+
+            } elsif ($error_type eq 'HBase::Client::Try::Retry'){
 
                 $state->{count}++;
 
@@ -62,6 +77,8 @@ sub _try_loop {
 
             $deferred->reject( $error );
 
+            return;
+
         } );
 
 }
@@ -72,5 +89,12 @@ use v5.14;
 use warnings;
 
 sub new { bless { @_[1..$#_] }, $_[0]; }
+
+package HBase::Client::Try::Done;
+
+use v5.14;
+use warnings;
+
+sub new { bless [ @_[1..$#_] ], $_[0]; }
 
 1;
