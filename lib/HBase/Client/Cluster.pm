@@ -158,7 +158,12 @@ sub get_region {
             closest_row_before => 1,
         };
 
-    return $meta_region->get_async( $get )
+    return $meta_region
+        ->then( sub {
+                my ($region) = @_;
+
+                return $region->get_async( $get );
+            } )
         ->then( sub {
                 my ($response) = @_;
 
