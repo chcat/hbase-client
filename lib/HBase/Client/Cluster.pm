@@ -121,8 +121,13 @@ sub get_region_before {
         ->then( sub {
                 my ($region) = @_;
 
-                return $region->scanner( $scan, 2, 1 )->next_async;
+                return $region->scanner( $scan, 2, 1 );
             })
+        ->then( sub {
+                my ($scanner) = @_;
+
+                return $scanner->next_async;
+            } )
         ->then( sub {
 
                 my ($response) = @_;
