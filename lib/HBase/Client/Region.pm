@@ -55,7 +55,7 @@ sub scan_async {
 
 sub scanner {
 
-    my ($self, $scan, $number_of_rows) = @_;
+    my ($self, $scan, $number_of_rows, $exclude_start) = @_;
 
     return $self->_get_node->then( sub {
             my ($node) = @_;
@@ -65,6 +65,7 @@ sub scanner {
                     region              => $self->specifier,
                     scan                => $scan,
                     number_of_rows      => $number_of_rows,
+                    exclude_start       => $exclude_start,
                 );
         } );
 }

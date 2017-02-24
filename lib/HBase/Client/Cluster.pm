@@ -117,7 +117,7 @@ sub get_region_before {
             reversed    => 1,
         };
 
-    return get_meta_region->scanner( $scan, 2 )->next_async( 1 )
+    return get_meta_region->scanner( $scan, 2, 1 )->next_async
         ->then( sub{
 
                 my ($response) = @_;

@@ -41,7 +41,7 @@ sub next_async {
 
                     $self->{completed} = 1 && return undef unless $scanner;
 
-                    return $scanner->next_async( $self->{exclude_start} );
+                    return $scanner->next_async;
 
                 } )
             ->then( sub {
@@ -101,7 +101,7 @@ sub _new_region_scanner {
 
                 return undef unless $region;
 
-                return $region->scanner( $self->{scan}, $self->{number_of_rows} );
+                return $region->scanner( $self->{scan}, $self->{number_of_rows}, $self->{exclude_start} );
 
             } );
 
