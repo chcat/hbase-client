@@ -21,7 +21,7 @@ sub next_async {
     my ($self) = @_;
 
     my ($node, $scanner_id, $number_of_rows, $next_call_seq, $exclude_start) = @$self{ qw ( node scanner_id number_of_rows next_call_seq exclude_start ) };
-    my $first_call = defined $scanner_id;
+    my $first_call = !defined $scanner_id;
 
     my ($region, $scan) = $first_call ? () : @$self{ qw ( region scan ) };
 
