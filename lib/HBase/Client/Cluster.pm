@@ -117,7 +117,7 @@ sub get_region_before {
             reversed    => 1,
         };
 
-    return get_meta_region
+    return $self->get_meta_region
         ->then( sub {
                 my ($region) = @_;
 
