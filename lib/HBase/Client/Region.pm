@@ -87,9 +87,17 @@ sub region_after {
 
 GETTERS: {
 
+    sub _getter {
+
+        my ($property) = @_;
+
+        return sub { $_[0]->{$property} };
+
+    }
+
     no strict 'refs';
 
-    *{$_} = sub { shift->{$_} } for qw( name start end server table );
+    *{$_} = _getter( $_ ) for qw( name start end server table );
 
 }
 
@@ -98,7 +106,7 @@ sub specifier { region_specifier( shift->name ) }
 sub _get_node {
     my ($self) = @_;
 
-    return $self->{cluster}->get_node( $self->specifier );
+    return $self->{cluster}->get_node( $self->server );
 }
 
 1;
