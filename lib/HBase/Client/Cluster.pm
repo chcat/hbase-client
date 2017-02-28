@@ -33,15 +33,16 @@ sub get {
     my ($self, $table, $get) = @_;
 
     my $region_promise = $self->get_region( $table, $get->{row} );
+    my $region;
 
     try {
 
         return $region_promise
             ->then( sub {
 
-                    my ($region) = @_;
+                    ($region) = @_;
 
-                    return ($region->get_async( $get ), $region);
+                    return $region->get_async( $get );
                 } )
             ->catch( sub {
 
@@ -60,7 +61,7 @@ sub get {
                 } )
             ->then( sub {
 
-                    my ($response, $region) = @_;
+                    my ($response) = @_;
 
                     my $cells = $response->get_result->get_cell_list;
 
