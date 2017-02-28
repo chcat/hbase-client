@@ -37,9 +37,9 @@ sub new {
 
 }
 
-sub get_async { shift->_cluster->get_async( @_ ); }
+sub get_async { shift->_cluster->get( @_ ); }
 
-sub mutate_async { shift->_cluster->mutate_async( @_ ); }
+sub mutate_async { shift->_cluster->mutate( @_ ); }
 
 SYNC_METHODS: {
 

@@ -17,7 +17,11 @@ sub get_async {
 
             my ($response) = @_;
 
-            return $self->_transform_cell_array( $response->get_result->get_cell_list, $get->{max_versions} // 1 > 1);
+            my $cells = $response->get_result->get_cell_list;
+
+            return undef unless $cells and @$cells;
+
+            return $self->_transform_cell_array( $cells, $get->{max_versions} // 1 > 1);
 
         } );
 
@@ -44,9 +48,9 @@ sub scan {
 
 sub _transform_cell_array {
 
-    my ($self, $cells, $multi_versions, $map) = @_;
+    my ($self, $cells, $multi_versions, $rows_map) = @_;
 
-    return $multi_versions ? $self->_transform_cell_array_multi_versions( $cells, $map ) : $self->_transform_cell_array_single_version( $cells, $map );
+    return $multi_versions ? $self->_transform_cell_array_multi_versions( $cells, $rows_map ) : $self->_transform_cell_array_single_version( $cells, $rows_map );
 
 }
 

@@ -29,7 +29,7 @@ sub next_async {
 
                 my $rows = {};
 
-                $self->{client}->_transform_cell_array( $_->get_cell_list, $self->{multi_versions}, $rows ) for @{$response->get_results_list};
+                $self->{client}->_transform_cell_array( $_->get_cell_list // [], $self->{multi_versions}, $rows ) for @{$response->get_results_list};
 
                 return $rows;
 

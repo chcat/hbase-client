@@ -28,17 +28,20 @@ sub new {
 
 }
 
-sub get_async {
+sub get {
 
     my ($self, $table, $get) = @_;
 
+    my $region_promise = $self->get_region( $table, $get->{row} );
+
     try {
 
-        return $self->get_region( $table, $get->{row} )
+        return $region_promise
             ->then( sub {
+
                     my ($region) = @_;
 
-                    return $region->get_async( $get );
+                    return ($region->get_async( $get ), $region);
                 } )
             ->catch( sub {
 
@@ -46,7 +49,7 @@ sub get_async {
 
                     if (exception($error) eq 'org.apache.hadoop.hbase.NotServingRegionException' ){
 
-                        retry( count => 3, cause => $error );
+                        retry( count => 3, cause => "Got org.apache.hadoop.hbase.NotServingRegionException" );
 
                     } else {
 
@@ -54,13 +57,28 @@ sub get_async {
 
                     }
 
+                } )
+            ->then( sub {
+
+                    my ($response, $region) = @_;
+
+                    my $cells = $response->get_result->get_cell_list;
+
+                    if ($get->{closest_row_before} && !($cells && @$cells) && $region->has_region_before ){
+                        $region_promise = $region->region_before;
+
+                        retry( cause => "Searching closest row before" );
+                    }
+
+                    return $response;
+
                 } );
 
     };
 
 }
 
-sub mutate_async {
+sub mutate {
 
     my ($self, $table, $mutation, $condition, $nonce_group) = @_;
 
