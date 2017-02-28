@@ -150,7 +150,7 @@ sub get_region_after {
 
     return deferred->resolve(undef)->promise if $table eq meta_table_name or $region->end eq '';
 
-    return get_region( $table, $region->end );
+    return $self->get_region( $table, $region->end );
 
 }
 
