@@ -104,9 +104,9 @@ GETTERS: {
 
 sub specifier { region_specifier( shift->name ) }
 
-sub has_region_before { shift->start eq '' }
+sub has_region_before { shift->start ne '' }
 
-sub has_region_after { shift->end eq '' }
+sub has_region_after { shift->end ne '' }
 
 sub _get_node {
     my ($self) = @_;
