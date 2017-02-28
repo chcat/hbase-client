@@ -63,9 +63,7 @@ sub get {
 
                     my ($response) = @_;
 
-                    my $cells = $response->get_result->get_cell_list;
-
-                    if ($get->{closest_row_before} && !($cells && @$cells) && $region->has_region_before ){
+                    if ($get->{closest_row_before} && !$response->get_result && $region->has_region_before ){
                         $region_promise = $region->region_before;
 
                         retry( cause => "Searching closest row before" );
