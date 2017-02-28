@@ -17,7 +17,7 @@ sub get_async {
 
             my ($response) = @_;
 
-            return $self->transform_cell_array( $response->get_result->get_cell_list, $get->{max_versions} // 1 > 1);
+            return $self->_transform_cell_array( $response->get_result->get_cell_list, $get->{max_versions} // 1 > 1);
 
         } );
 
