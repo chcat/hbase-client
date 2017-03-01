@@ -53,7 +53,7 @@ sub _create_table_map {
 
     my $scan = {
             start_row   => region_name( $table ),
-            stop_row    => region_name( next_key( $table ) );
+            stop_row    => region_name( next_key( $table ) ),
         };
 
     my $cluster = $self->{cluster};
