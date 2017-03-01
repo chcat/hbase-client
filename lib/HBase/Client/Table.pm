@@ -29,7 +29,7 @@ sub region {
 
     my $regions = $self->{regions};
 
-    my $position = binsearch_pos { ($b->start le $a && ($b->end gt $a || $b->end eq '')) ? 0 : $a <=> $b->start } $row, @$regions;
+    my $position = binsearch_pos { ($b->start le $a && ($b->end gt $a || $b->end eq '')) ? 0 : $a cmp $b->start } $row, @$regions;
 
     if ($position < @$regions){
 
