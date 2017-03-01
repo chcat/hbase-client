@@ -31,7 +31,7 @@ sub region {
 
     if ($position < @$regions){
 
-        return $regions[$position];
+        return $regions->[$position];
 
     } else {
 
