@@ -4,8 +4,10 @@ use v5.14;
 use warnings;
 
 use HBase::Client::Utils;
+use HBase::Client::Try;
 use List::BinarySearch qw( binsearch_pos );
 use Scalar::Util qw( weaken );
+
 
 sub new {
     my ($class, %args) = @_;
