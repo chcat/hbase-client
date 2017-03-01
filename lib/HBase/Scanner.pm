@@ -18,7 +18,7 @@ sub new {
 
 sub next_async {
 
-    return shift->{scanner}->next_async( @_ );
+    return shift->{scanner}->next( @_ );
 
 }
 

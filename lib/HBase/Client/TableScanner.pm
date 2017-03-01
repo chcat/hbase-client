@@ -24,7 +24,7 @@ sub new {
 
 }
 
-sub next_async {
+sub next {
 
     my ($self) = @_;
 
@@ -41,7 +41,7 @@ sub next_async {
 
                     $self->{completed} = 1 && done(undef) unless $scanner;
 
-                    return $scanner->next_async;
+                    return $scanner->next;
 
                 } )
             ->then( sub {

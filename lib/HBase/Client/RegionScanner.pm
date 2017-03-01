@@ -16,7 +16,7 @@ sub new {
 
 }
 
-sub next_async {
+sub next {
 
     my ($self) = @_;
 

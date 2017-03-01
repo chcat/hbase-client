@@ -8,6 +8,7 @@ use HBase::Client::Proto::Loader;
 use HBase::Client::Utils;
 use HBase::Client::Try;
 use HBase::Client::Region;
+use HBase::Client::Table;
 
 use Promises qw( deferred );
 
@@ -22,6 +23,7 @@ sub new {
     my $self = bless {
             meta_holder_locator => $meta_holder_locator,
             node_pool           => $node_pool,
+            tables              => {},
         }, $class;
 
     return $self;
@@ -32,15 +34,14 @@ sub get {
 
     my ($self, $table, $get) = @_;
 
-    my $region_promise = $self->get_region( $table, $get->{row} );
-    my $region;
+    return deferred->reject('Getting the closest row before is deprecated, use reverse scan instead!')->promise if $get->{closest_row_before};
 
     try {
 
-        return $region_promise
+        return $self->get_region( $table, $get->{row} )
             ->then( sub {
 
-                    ($region) = @_;
+                    my ($region) = @_;
 
                     return $region->get_async( $get );
                 } )
@@ -57,19 +58,6 @@ sub get {
                         die $error;
 
                     }
-
-                } )
-            ->then( sub {
-
-                    my ($response) = @_;
-
-                    if ($get->{closest_row_before} && !$response->get_result && $region->has_region_before ){
-                        $region_promise = $region->region_before;
-
-                        retry( cause => "Searching closest row before" );
-                    }
-
-                    return $response;
 
                 } );
 
@@ -95,7 +83,7 @@ sub mutate {
 
                     if (exception($error) eq 'org.apache.hadoop.hbase.NotServingRegionException' ){
 
-                        retry( count => 3, cause => $error );
+                        retry( count => 3, cause => "Got org.apache.hadoop.hbase.NotServingRegionException" );
 
                     } else {
 
@@ -143,7 +131,7 @@ sub get_region_before {
         ->then( sub {
                 my ($scanner) = @_;
 
-                return $scanner->next_async;
+                return $scanner->next;
             } )
         ->then( sub {
 
@@ -151,7 +139,7 @@ sub get_region_before {
 
                 return undef unless $response->results_size;
 
-                my $region = $self->_parse_region_from_row( $response->get_results(0) );
+                my $region = $self->region_from_row( $response->get_results(0) );
 
                 return $region && $region->table eq $table ? $region : undef;
 
@@ -173,19 +161,27 @@ sub get_region_after {
 
 sub get_region {
 
-    my ($self, $table, $row) = @_;
+    my ($self, $table_name, $row) = @_;
 
-    my $meta_region = $self->get_meta_region;
+    return $self->get_meta_region if $table_name eq meta_table_name;
 
-    return $meta_region if $table eq meta_table_name;
+    my $table = $self->{tables}->{$table_name} //= HBase::Client::Table->new(
+            cluster     => $self,
+        );
+
+    if (my $cached_region = $table->region($row)) {
+
+        return deferred->resolve($cached_region)->promise;
+
+    }
 
     my $get = {
-            row              => region_name( $table, $row, '99999999999999'),
+            row              => region_name( $table_name, $row, '99999999999999'),
             column           => [ { family => 'info' } ],
             closest_row_before => 1,
         };
 
-    return $meta_region
+    return $self->get_meta_region
         ->then( sub {
                 my ($region) = @_;
 
@@ -194,32 +190,10 @@ sub get_region {
         ->then( sub {
                 my ($response) = @_;
 
-                my $region = $self->_parse_region_from_row( $response->get_result );
+                my $region = $self->region_from_row( $response->get_result );
                 # filter out regions of other tables for the case the target table does not exists
-                return $region && $region->table eq $table ? $region : undef;
+                return $region && $region->table eq $table_name ? $region : undef;
             } );
-}
-
-sub get_meta_region {
-
-    my ($self) = @_;
-
-    return $self->_meta_holder
-        ->then( sub {
-
-                 my ($server) = @_;
-
-                 return HBase::Client::Region->new(
-                     name        => 'hbase:meta,,1',
-                     server      => $server,
-                     start       => '',
-                     end         => '',
-                     cluster     => $self,
-                     table       => meta_table_name,
-                 );
-
-            } );
-
 }
 
 sub get_node {
@@ -230,30 +204,48 @@ sub get_node {
 
 }
 
-sub _meta_holder {
+sub invalidate_meta_region {
 
     my ($self) = @_;
 
-    return $self->{meta_holder} //= $self->_locate_meta_holder;
+    return undef $self->{meta_region};
 
 }
 
-sub _locate_meta_holder {
+sub get_meta_region {
 
     my ($self) = @_;
 
-    try {
-        return $self->{meta_holder_locator}->locate
-            ->catch( sub {
+    return $self->{meta_region} //= try {
+        $self->_meta_holder->then( sub {
 
-                    retry(count => 3, cause => $_[0]);
+                    my ($server) = @_;
+
+                    return HBase::Client::Region->new(
+                        name        => 'hbase:meta,,1',
+                        server      => $server,
+                        start       => '',
+                        end         => '',
+                        cluster     => $self,
+                        table       => meta_table_name,
+                    );
+
+                }, sub {
+
+                    my ($error) = @_;
+
+                    retry(count => 3, cause => $error);
 
                 } );
-    };
+    }->catch( sub {
+
+            undef $self->{meta_region}; # clear cache of the failed region promise not to leave the client broken
+
+        } );
 
 }
 
-sub _parse_region_from_row {
+sub region_from_row {
 
     my ($self, $result) = @_;
 
