@@ -167,6 +167,7 @@ sub get_region {
 
     my $table = $self->{tables}->{$table_name} //= HBase::Client::Table->new(
             cluster     => $self,
+            name        => $table_name,
         );
 
     if (my $cached_region = $table->region($row)) {
@@ -217,7 +218,7 @@ sub get_meta_region {
     my ($self) = @_;
 
     return $self->{meta_region} //= try {
-        $self->_meta_holder->then( sub {
+        $self->{meta_holder_locator}->locate->then( sub {
 
                     my ($server) = @_;
 

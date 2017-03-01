@@ -45,11 +45,13 @@ sub region {
 
 sub _create_table_map {
 
-    my ($self, $table) = @_;
+    my ($self) = @_;
 
     return if $self->{mapping};
 
     $self->{mapping} = 1;
+
+    my $table = $self->name;
 
     my $scan = {
             start_row   => region_name( $table ),
