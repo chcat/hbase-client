@@ -121,11 +121,11 @@ sub scanner {
 
 sub _get_region {
 
-    my ($self, $tablename, $row) = @_;
+    my ($self, $table_name, $row) = @_;
 
     return $self->get_meta_region if $table_name eq meta_table_name;
 
-    return $table->region( $row );
+    return $self->_table( $table_name )->region( $row );
 
 }
 
