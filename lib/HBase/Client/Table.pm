@@ -75,8 +75,6 @@ sub load {
 
     my ($self) = @_;
 
-    return deferred->resolve( undef ) if $self->name eq meta_table_name;
-
     # loading is a continious "async" process whose result we cache to use as a mutex lock
     return $self->{loading} if $self->{loading}; # check the loading process lock
 

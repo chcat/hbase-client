@@ -26,6 +26,8 @@ sub new {
             tables              => {},
         }, $class;
 
+    my $self->{tables}->{+meta_table_name} = HBase::Client::MetaTable->new( cluster => $self );
+
     return $self;
 
 }
@@ -119,14 +121,13 @@ sub scanner {
 
 }
 
+sub get_meta_region { shift->_get_region(meta_table_name); }
+
 sub _get_region {
 
     my ($self, $table_name, $row) = @_;
 
-    return $self->get_meta_region if $table_name eq meta_table_name;
-
     return $self->_table( $table_name )->region( $row );
-
 }
 
 sub get_node {
@@ -142,39 +143,6 @@ sub invalidate_meta_region {
     my ($self) = @_;
 
     return undef $self->{meta_region};
-
-}
-
-sub get_meta_region {
-
-    my ($self) = @_;
-
-    return $self->{meta_region} //= try {
-        $self->{meta_holder_locator}->locate->then( sub {
-
-                    my ($server) = @_;
-
-                    return HBase::Client::Region->new(
-                        name        => 'hbase:meta,,1',
-                        server      => $server,
-                        start       => '',
-                        end         => '',
-                        cluster     => $self,
-                        table       => meta_table_name,
-                    );
-
-                }, sub {
-
-                    my ($error) = @_;
-
-                    retry(count => 3, cause => $error);
-
-                } );
-    }->catch( sub {
-
-            undef $self->{meta_region}; # clear cache of the failed region promise not to leave the client broken
-
-        } );
 
 }
 
