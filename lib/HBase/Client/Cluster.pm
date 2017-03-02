@@ -9,6 +9,7 @@ use HBase::Client::Utils;
 use HBase::Client::Try;
 use HBase::Client::Region;
 use HBase::Client::Table;
+use HBase::Client::MetaTable;
 
 use Promises qw( deferred );
 
