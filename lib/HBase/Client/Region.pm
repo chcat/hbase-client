@@ -107,7 +107,7 @@ sub has_region_after { shift->end ne '' }
 sub _get_node {
     my ($self) = @_;
 
-    return $self->{cluster}->get_node( $self->server );
+    return $self->{table}->cluster->get_node( $self->server );
 }
 
 1;
