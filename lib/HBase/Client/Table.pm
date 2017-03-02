@@ -92,25 +92,32 @@ sub load {
     # set the loading process lock
     return $self->{loading} = try {
 
-        $scanner->next->then( sub {
+                $scanner->next->then( sub {
 
-                my ($response) = @_;
+                        my ($response) = @_;
 
-                if ($response){
+                        if ($response){
 
-                    push @$regions, $cluster->region_from_row($_) for @{$response->get_results_list // []};
+                            push @$regions, $self->_region_from_row($_) for @{$response->get_results_list // []};
 
-                    retry( cause => 'Check for more regions' );
+                            retry( cause => 'Check for more regions' );
 
-                } else {
+                        }
 
-                    undef $self->{loading}; # release the loading process lock
+                    });
+            }
+        ->catch( sub {
 
-                }
+                my ($error) = @_;
 
-            });
+                warn 'Error loading table '.$self->name.' : '.$error;
 
-    }
+            } )
+        ->finally( sub {
+
+                undef $self->{loading}; # release the loading process lock
+
+            } );
 
 }
 
