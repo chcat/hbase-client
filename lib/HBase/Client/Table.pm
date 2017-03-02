@@ -47,7 +47,7 @@ sub region_after {
 
     return deferred->resolve( undef ) if $region->end eq '';
 
-    return $self->get_region( $region->end );
+    return $self->region( $region->end );
 
 }
 
