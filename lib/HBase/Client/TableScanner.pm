@@ -14,7 +14,6 @@ sub new {
 
     my $self = bless {
             %args,
-            next_call_seq       => 0,
             current_start       => $args{scan}->{start_row} // '',
             stop_row            => $args{scan}->{stop_row},
             reversed            => $args{scan}->{reversed},
@@ -114,7 +113,7 @@ sub _region {
 
     my ($self) = @_;
 
-    return $self->{region} //= $self->{cluster}->get_region( $self->{table}, $self->{current_start} );
+    return $self->{region} //= $self->{table}->region( $self->{current_start} );
 
 }
 

@@ -63,8 +63,8 @@ sub scan_async {
     my ($self, $region, $scan, $scanner_id, $number_of_rows, $next_call_seq, $close_scanner) = @_;
 
     my $request = HBase::Client::Proto::ScanRequest->new( {
-            $region ? (region => $region) : (),
-            $scan ? (scan => $scan) : (),
+            defined $scanner_id ? () : (region => $region),
+            defined $scanner_id ? () : (scan => $scan),
             defined $scanner_id ? (scanner_id => $scanner_id) : (),
             defined $number_of_rows ? (number_of_rows => $number_of_rows) : (),
             defined $close_scanner ? (close_scanner => $close_scanner) : (),

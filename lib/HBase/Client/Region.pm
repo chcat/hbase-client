@@ -14,7 +14,7 @@ sub new {
             %args,
         }, $class;
 
-    weaken $self->{cluster};
+    weaken $self->{table};
 
     return $self;
 
@@ -57,24 +57,20 @@ sub scanner {
 
     my ($self, $scan, $number_of_rows, $exclude_start) = @_;
 
-    return $self->_get_node->then( sub {
-            my ($node) = @_;
+    return HBase::Client::RegionScanner->new(
+            region              => $self,
+            scan                => $scan,
+            number_of_rows      => $number_of_rows,
+            exclude_start       => $exclude_start,
+        );
 
-            return HBase::Client::RegionScanner->new(
-                    node                => $node,
-                    region              => $self->specifier,
-                    scan                => $scan,
-                    number_of_rows      => $number_of_rows,
-                    exclude_start       => $exclude_start,
-                );
-        } );
 }
 
 sub region_before {
 
     my ($self) = @_;
 
-    return $self->{cluster}->get_region_before( $self );
+    return $self->table->region_before( $self );
 
 }
 
@@ -82,7 +78,7 @@ sub region_after {
 
     my ($self) = @_;
 
-    return $self->{cluster}->get_region_after( $self );
+    return $self->table->region_after( $self );
 
 }
 

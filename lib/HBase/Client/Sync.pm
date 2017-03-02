@@ -6,7 +6,7 @@ use warnings;
 use AnyEvent;
 use Exporter 'import';
 
-our @EXPORT= qw(
+our @EXPORT = qw(
         sync
     );
 

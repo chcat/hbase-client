@@ -38,7 +38,7 @@ sub get {
 
     try {
 
-        return $self->get_region( $table, $get->{row} )
+        return $self->_get_region( $table, $get->{row} )
             ->then( sub {
 
                     my ($region) = @_;
@@ -96,105 +96,37 @@ sub mutate {
 
 }
 
+sub _table {
+
+    my ($self, $table_name) = @_;
+
+    return $self->{tables}->{$table_name} //= HBase::Client::Table->new(
+            cluster     => $self,
+            name        => $table_name,
+        );
+
+}
+
 sub scanner {
 
-    my ($self, $table, $scan, $number_of_rows) = @_;
+    my ($self, $table_name, $scan, $number_of_rows) = @_;
 
     return HBase::Client::TableScanner->new(
-            cluster             => $self,
-            table               => $table,
+            table               => $self->_table( $table_name ),
             scan                => $scan,
             number_of_rows      => $number_of_rows,
         );
 
 }
 
-sub get_region_before {
+sub _get_region {
 
-    my ($self, $region) = @_;
-
-    my $table = $region->table;
-
-    return deferred->resolve(undef)->promise if $table eq meta_table_name or $region->start eq '';
-
-    my $scan = {
-            start_row   => $region->name,
-            reversed    => 1,
-        };
-
-    return $self->get_meta_region
-        ->then( sub {
-                my ($region) = @_;
-
-                return $region->scanner( $scan, 2, 1 );
-            })
-        ->then( sub {
-                my ($scanner) = @_;
-
-                return $scanner->next;
-            } )
-        ->then( sub {
-
-                my ($response) = @_;
-
-                return undef unless $response->results_size;
-
-                my $region = $self->region_from_row( $response->get_results(0) );
-
-                return $region && $region->table eq $table ? $region : undef;
-
-            } );
-
-}
-
-sub get_region_after {
-
-    my ($self, $region) = @_;
-
-    my $table = $region->table;
-
-    return deferred->resolve(undef)->promise if $table eq meta_table_name or $region->end eq '';
-
-    return $self->get_region( $table, $region->end );
-
-}
-
-sub get_region {
-
-    my ($self, $table_name, $row) = @_;
+    my ($self, $tablename, $row) = @_;
 
     return $self->get_meta_region if $table_name eq meta_table_name;
 
-    my $table = $self->{tables}->{$table_name} //= HBase::Client::Table->new(
-            cluster     => $self,
-            name        => $table_name,
-        );
+    return $table->region( $row );
 
-    if (my $cached_region = $table->region($row)) {
-
-        return deferred->resolve($cached_region)->promise;
-
-    }
-
-    my $get = {
-            row              => region_name( $table_name, $row, '99999999999999'),
-            column           => [ { family => 'info' } ],
-            closest_row_before => 1,
-        };
-
-    return $self->get_meta_region
-        ->then( sub {
-                my ($region) = @_;
-
-                return $region->get_async( $get );
-            } )
-        ->then( sub {
-                my ($response) = @_;
-
-                my $region = $self->region_from_row( $response->get_result );
-                # filter out regions of other tables for the case the target table does not exists
-                return $region && $region->table eq $table_name ? $region : undef;
-            } );
 }
 
 sub get_node {
@@ -245,37 +177,5 @@ sub get_meta_region {
         } );
 
 }
-
-sub region_from_row {
-
-    my ($self, $result) = @_;
-
-    my $rows = cell_array_to_row_map( $result->get_cell_list );
-
-    my ($region_name) = keys %$rows or return undef;
-
-    my $row = $rows->{$region_name};
-
-    my $region_info_encoded = $row->{info}->{regioninfo}->[0]->{value} // die;
-
-    my $region_info = HBase::Client::Proto::RegionInfo->decode( substr $region_info_encoded, 4 );
-
-    my $table_name = $region_info->get_table_name;
-
-    my $namespace = $table_name->get_namespace;
-
-    my $table = $table_name->get_qualifier;
-
-    return HBase::Client::Region->new(
-            name        => $region_name,
-            server      => $row->{info}->{server}->[0]->{value},
-            start       => $region_info->get_start_key,
-            end         => $region_info->get_end_key,
-            cluster     => $self,
-            table       => ( $namespace eq 'default' ? '' : $namespace . ':') . $table ,
-        );
-
-}
-
 
 1;
