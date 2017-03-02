@@ -27,7 +27,7 @@ sub region {
 
     my ($self, $row) = @_;
 
-    if ( defined my $position_in_cache = $self->_region_cache_position_lookup( $row ) ){
+    if ( defined (my $position_in_cache = $self->_region_cache_position_lookup( $row )) ){
 
         return deferred->resolve( $regions->[$position_in_cache] )->promise;
 
@@ -57,7 +57,7 @@ sub region_before {
 
     return deferred->resolve( undef ) if $region->start eq '';
 
-    if ( defined my $position_in_cache = $self->_region_cache_position_lookup( $region->start ) ){
+    if ( defined (my $position_in_cache = $self->_region_cache_position_lookup( $region->start )) ){
 
         return deferred->resolve( $position_in_cache > 0 ? $regions->[$position_in_cache-1] : undef )->promise;
 
