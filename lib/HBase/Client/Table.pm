@@ -146,28 +146,12 @@ sub _region_before {
 
     my ($self, $region) = @_;
 
-    return $self->get_meta_region
-        ->then( sub {
-                my ($region) = @_;
+    my $scan = {
+            start_row   => $region->name,
+            reversed    => 1,
+        };
 
-                my $scan = {
-                        start_row   => $region->name,
-                        reversed    => 1,
-                    };
-
-                return $region->scanner( $scan, 2, 1 )->next;
-            } )
-        ->then( sub {
-
-                my ($response) = @_;
-
-                return undef unless $response->results_size;
-
-                my $region = $self->region_from_row( $response->get_results(0) );
-
-                return $region && $region->table eq $table ? $region : undef;
-
-            } );
+    return $self->_scan_for_region( $scan, 2, 1 );
 
 }
 
@@ -175,19 +159,26 @@ sub _region {
 
     my ($self, $row) = @_;
 
+    my $scan = {
+            start_row   => region_name( $self->name, $row, '99999999999999'),
+            reversed    => 1,
+        };
+
+    return $self->_scan_for_region( $scan, 1 );
+
+}
+
+sub _scan_for_region {
+
+    my ($self, $scan, $number_of_rows, $exclude_start) = @_;
+
     return $self->_meta_region
         ->then( sub {
                 my ($region) = @_;
 
-                my $scan = {
-                        start_row   => region_name( $self->name, $row, '99999999999999'),
-                        reversed    => 1,
-                    };
-
-                return $region->scanner( $scan, 1 )->next;
+                return $region->scanner( $scan, $number_of_rows, $exclude_start )->next;
             } )
         ->then( sub {
-
                 my ($response) = @_;
 
                 return $response->results_size ? $self->_region_from_row( $response->get_results(0) ) : undef;
