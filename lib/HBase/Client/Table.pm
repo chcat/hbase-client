@@ -33,7 +33,7 @@ sub region {
 
     } else {
 
-        $self->_load; # start 'async' loading process
+        $self->load; # start 'async' loading process
 
         return $self->_region( $row );
 
@@ -63,7 +63,7 @@ sub region_before {
 
     } else {
 
-        $self->_load; # start 'async' loading process
+        $self->load; # start 'async' loading process
 
         return $self->_region_before( $region );
 
