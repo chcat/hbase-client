@@ -27,7 +27,7 @@ sub new {
             tables              => {},
         }, $class;
 
-    my $self->{tables}->{+meta_table_name} = HBase::Client::MetaTable->new( cluster => $self );
+    $self->{tables}->{+meta_table_name} = HBase::Client::MetaTable->new( cluster => $self );
 
     return $self;
 
