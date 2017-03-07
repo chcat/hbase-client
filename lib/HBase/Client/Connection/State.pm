@@ -23,7 +23,7 @@ sub write {
 
     my ($self, $callback, $data_ref) = @_;
 
-    my $write_queue = $self->connection->write_queue;
+    my $write_queue = $self->connection->_write_queue;
 
     my $write = {
             buffer_ref => $data_ref,
