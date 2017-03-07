@@ -19,7 +19,7 @@ sub enter {
 
     for my $write ( @$queue ){
 
-        call $write->{callback}, $reason ? "Disconnected: $reason" : 'Disconnected';
+        call( $write->{callback}, $reason ? "Disconnected: $reason" : 'Disconnected' );
 
     }
 

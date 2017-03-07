@@ -43,7 +43,7 @@ sub can_write {
 
     $self->connection->_connected;
 
-    call $self->{callback};
+    call( $self->{callback} );
 
     return;
 
@@ -55,7 +55,7 @@ sub can_write_timeout {
 
     $self->connection->_disconnected;
 
-    call $self->{callback}, 'timeout';
+    call( $self->{callback}, 'timeout' );
 
     return;
 }

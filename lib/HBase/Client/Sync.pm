@@ -33,7 +33,7 @@ sub sync {
         };
 }
 
-sub call(&@) {
+sub call {
 
     my ($sub, @args) = @_;
 

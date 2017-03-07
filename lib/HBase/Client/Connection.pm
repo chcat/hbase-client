@@ -46,9 +46,11 @@ sub set_callbacks {
 
     my ($self, %args) = @_;
 
-    state @callbacks = qw( on_read on_connected on_disconnected );
+    state $callbacks = [qw( on_read on_connected on_disconnected )];
 
-    @$self{ @callbacks } = @args{ @callbacks };
+    @$self{ @$callbacks } = @args{ @$callbacks };
+
+    return;
 
 }
 
@@ -92,7 +94,7 @@ sub _connected {
 
     $self->_state( 'HBase::Client::Connection::Connected' );
 
-    call $self->{on_connected};
+    call( $self->{on_connected} );
 
     return;
 
@@ -104,7 +106,7 @@ sub _disconnected {
 
     $self->_state( 'HBase::Client::Connection::Disconnected', $reason );
 
-    call $self->{on_disconnected}, $reason;
+    call( $self->{on_disconnected}, $reason);
 
     return;
 
@@ -128,7 +130,7 @@ sub _on_read {
 
     my ($self, $data_ref);
 
-    call $self->{on_read}, $data_ref;
+    call( $self->{on_read}, $data_ref );
 
     return;
 
@@ -191,7 +193,7 @@ sub _watch_can_write_timeout {
 
             return;
 
-        } )
+        } );
 
     return;
 

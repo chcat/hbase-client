@@ -77,7 +77,7 @@ sub can_write {
 
             shift @$queue;
 
-            call $callback;
+            call( $callback );
 
         } else {
 
