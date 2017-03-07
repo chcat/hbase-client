@@ -25,6 +25,11 @@ sub write {
 
     my $write_queue = $self->connection->write_queue;
 
+    my $write = {
+            buffer_ref => $data_ref,
+            callback   => $callback
+        };
+
     push @$write_queue, $write;
 
 }
