@@ -8,6 +8,7 @@ use Exporter 'import';
 
 our @EXPORT = qw(
         sync
+        call
     );
 
 sub sync {
