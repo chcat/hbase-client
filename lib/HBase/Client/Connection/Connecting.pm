@@ -5,38 +5,59 @@ use warnings;
 
 use parent 'HBase::Client::Connection::State';
 
-sub _enter {
+use HBase::Client::Sync;
 
-    my ($self, $previous_state, $callback, %args) = @_;
+sub enter {
 
-    if (my $error = $self->_open_socket) {
+    my ($self, $callback, %args) = @_;
 
-        $self->_state( 'HBase::Client::Connection::Disconnected' );
+    $self->{callback} = $callback;
 
-        $callback->( "Could not connect: $error" ) if $callback;
+    my $connection = $self->connection;
 
-        return;
+    if (my $error = $connection->_open_socket) {
+
+        $connection->_disconnected;
+
+        return callback $callback, $error;
 
     }
 
-    my $timeout = $args{timeout} // $self->{connect_timeout};
-
-    $self->_watch_can_write_once( sub {
-
-            $self->_state( 'HBase::Client::Connection::Connected' );
-
-            $callback->() if $callback;
-
-        }, $timeout, sub {
-
-            $self->_state( 'HBase::Client::Connection::Disconnected' );
-
-            $callback->( "Could not connect: timeout" ) if $callback;
-
-        } );
+    $connection->_watch_can_write_once( $args{timeout} );
 
     return;
 
+}
+
+sub disconnect {
+
+    my ($self, @args) = @_;
+
+    return $self->connection->_disconnected( @args );
+
+}
+
+sub can_write {
+
+    my ($self) = @_;
+
+    $self->connection->_connected;
+
+    call $self->{callback};
+
+    return;
+
+}
+
+sub can_write_timeout {
+
+    my ($self) = @_;
+
+    $self->connection->_disconnected;
+
+    call $self->{callback}, 'timeout';
+
+    return;
 }
 
 1;

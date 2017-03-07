@@ -5,19 +5,19 @@ use warnings;
 
 use parent 'HBase::Client::Connection::State';
 
-sub _enter {
+use HBase::Client::Sync;
+
+sub enter {
 
     my ($self) = @_;
 
     $self->{write_progress} = 0;
 
-    $self->_watch_can_read( sub {
+    my $connection = $self->connection;
 
-            $self->_can_read();
+    $connection->_watch_can_read;
 
-        } );
-
-    $self->_setup_write_watcher if @{$self->{write_queue}};
+    $connection->_watch_can_write if @{$connection->_write_queue};
 
     return;
 
@@ -25,38 +25,33 @@ sub _enter {
 
 sub write {
 
-    my $self = shift;
+    my ($self, @args) = @_;
 
-    $self->SUPER::write( @_ );
+    $self->SUPER::write( @args );
 
-    $self->_setup_write_watcher unless $self->_watching_can_write;
+    my $connection = $self->connection;
+
+    $connection->_watch_can_write unless $connection->_watching_can_write;
 
     return;
 
 }
 
-sub _setup_write_watcher {
+sub disconnect {
 
-     my ($self) = @_;
+    my ($self, @args) = @_;
 
-     $self->_watch_can_write( sub {
+    return $self->connection->_disconnected( @args );
 
-             $self->_can_write;
-
-         }, $self->{write_timeout}, sub {
-
-             $self->_disconnect("Write timeout");
-
-         } );
-
-     return;
 }
 
-sub _can_write {
+sub can_write {
 
     my ($self) = @_;
 
-    my $queue = $self->{write_queue};
+    my $connection = $self->connection;
+
+    my $queue = $connection->_write_queue;
 
     my $write = $queue->[0];
 
@@ -66,11 +61,13 @@ sub _can_write {
 
     my $to_write = (length $$buffer_ref) - $write_progress;
 
-    my ($error, $written) = $self->_socket_write( $buffer_ref, $to_write, $write_progress );
+    my ($error, $written) = $connection->_socket_write( $buffer_ref, $to_write, $write_progress );
 
     if ($error) {
 
-        return $self->_disconnect( $error );
+        $connection->_disconnected( "Write error: $error" );
+
+        return;
 
     } else {
 
@@ -80,7 +77,7 @@ sub _can_write {
 
             shift @$queue;
 
-            $callback->() if $callback;
+            call $callback;
 
         } else {
 
@@ -90,37 +87,38 @@ sub _can_write {
 
     }
 
-    $self->_unwatch_can_write unless @$queue;
-
-}
-
-sub _can_read {
-
-    my ( $self )= @_;
-
-    my ($error, $data_ref) = $self->_socket_read;
-
-    if ($error) {
-
-        $self->_disconnect( $error );
-
-    } else {
-
-        $self->_on_read( $data_ref ) if $data_ref;
-
-    }
+    $connection->_unwatch_can_write unless @$queue;
 
     return;
 
 }
 
-sub _disconnect {
+sub can_write_timeout {
 
-    my ( $self, $reason )= @_;
+    my ($self) = @_;
 
-    $self->_state( 'HBase::Client::Connection::Disconnected' );
+    $self->connection->_disconnected( 'Write timeout' );
 
-    $self->_on_disconnect( $reason );
+    return;
+}
+
+sub can_read {
+
+    my ($self)= @_;
+
+    my $connection = $self->connection;
+
+    my ($error, $data_ref) = $connection->_socket_read;
+
+    if ($error) {
+
+        $connection->_disconnected( "Read error: $error" );
+
+    } else {
+
+        $connection->_on_read( $data_ref ) if $data_ref;
+
+    }
 
     return;
 

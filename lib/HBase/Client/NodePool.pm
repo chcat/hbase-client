@@ -3,7 +3,7 @@ package HBase::Client::NodePool;
 use v5.14;
 use warnings;
 
-use HBase::Client::Connection::Opened;
+use HBase::Client::Connection;
 use HBase::Client::Node;
 use HBase::Client::RPCChannel;
 
@@ -34,7 +34,7 @@ sub _discover_node {
 
     my ($host, $port) = split ':', $server;
 
-    my $connection = HBase::Client::Connection::Opened->new(
+    my $connection = HBase::Client::Connection->new(
             host                => $host,
             port                => $port,
             connect_timeout     => 3,

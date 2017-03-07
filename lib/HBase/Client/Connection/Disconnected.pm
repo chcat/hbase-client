@@ -5,19 +5,35 @@ use warnings;
 
 use parent 'HBase::Client::Connection::State';
 
-sub _enter {
+use HBase::Client::Sync;
 
-     my ($self) = @_;
+sub enter {
 
-     $self->_close_socket;
+    my ($self, $reason) = @_;
+
+    my $connection = $self->connection;
+
+    $connection->_close_socket;
+
+    my $queue = $connection->_write_queue;
+
+    for my $write ( @$queue ){
+
+        call $write->{callback}, $reason ? "Disconnected: $reason" : 'Disconnected';
+
+    }
+
+    splice @$queue;
+
+    return;
 
 }
 
 sub connect {
 
-    my ($self, $callback, %args) = @_;
+    my ($self, @args) = @_;
 
-    $self->_state( 'HBase::Client::Connection::Connecting', [ $callback, %args ] );
+    $self->connection->_connecting( @args );
 
     return;
 }

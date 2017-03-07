@@ -32,7 +32,7 @@ sub connect {
 
     my $connection = $self->{connection};
 
-    $connection->set_on_read( sub { $self->_on_read( @_ ) } );
+    $connection->set_callbacks( on_read => sub { $self->_on_read( @_ ) } );
 
     my $deferred = deferred;
 

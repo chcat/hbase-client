@@ -33,4 +33,13 @@ sub sync {
         };
 }
 
+sub call(&@) {
+
+    my ($sub, @args) = @_;
+
+    $sub->(@args) if $sub;
+
+    return;
+}
+
 1;
