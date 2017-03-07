@@ -128,7 +128,7 @@ sub _state {
 
 sub _on_read {
 
-    my ($self, $data_ref);
+    my ($self, $data_ref) = @_;
 
     call( $self->{on_read}, $data_ref );
 
