@@ -142,17 +142,9 @@ sub _watching_can_write { defined $_[0]->{write_watcher} }
 
 sub _unwatch_can_write{ @{$_[0]}{qw (write_watcher write_timeout_watcher)} = () }
 
-sub _watch_can_write_once {
-
-    my ($self, $timeout) = @_;
-
-    return $self->_watch_can_write( 1, $timeout );
-
-}
-
 sub _watch_can_write {
 
-    my ($self, $once, $timeout) = @_;
+    my ($self, $timeout) = @_;
 
     $timeout //= $self->{write_timeout};
 
@@ -160,14 +152,15 @@ sub _watch_can_write {
 
     $self->{ write_watcher } = AnyEvent->io( poll => 'w', fh => $self->{socket}->fileno, cb => sub {
 
-            undef $self->{ write_watcher } if $once;
+            if ($self->_state->can_write) {
 
-            undef $self->{ write_timeout_watcher };
+                $self->_watch_can_write_timeout( $timeout ); # refresh the timer and continue watching
 
-            $self->_state->can_write;
+            } else {
 
-            # refresh the corresponding io timeout timer on each step of continious io operation
-            $self->_watch_can_write_timeout( $timeout ) unless $once;
+                $self->_unwatch_can_write; # stop watching
+
+            }
 
             return;
 

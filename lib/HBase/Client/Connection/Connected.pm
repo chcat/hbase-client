@@ -87,9 +87,7 @@ sub can_write {
 
     }
 
-    $connection->_unwatch_can_write unless @$queue;
-
-    return;
+    return !!@$queue; # continue watching for can-write unless the queue is empty
 
 }
 

@@ -23,7 +23,7 @@ sub enter {
 
     }
 
-    $connection->_watch_can_write_once( $args{timeout} );
+    $connection->_watch_can_write( $args{timeout} );
 
     return;
 
@@ -45,7 +45,7 @@ sub can_write {
 
     call( $self->{callback} );
 
-    return;
+    return; # stop watching for can-write
 
 }
 
