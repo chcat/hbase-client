@@ -45,7 +45,7 @@ sub can_write {
 
     call( $self->{callback} );
 
-    return; # stop watching for can-write
+    return;
 
 }
 

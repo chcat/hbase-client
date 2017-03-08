@@ -34,6 +34,8 @@ sub new {
 
             write_queue         => [],
 
+            write_watcher_number => 0,
+
         }, $class;
 
     $self->{state} = HBase::Client::Connection::Disconnected->new( connection => $self );
@@ -148,17 +150,24 @@ sub _watch_can_write {
 
     $timeout //= $self->{write_timeout};
 
+    my $watcher_number = ++$self->{write_watcher_number};
+
     $self->_watch_can_write_timeout( $timeout );
 
     $self->{ write_watcher } = AnyEvent->io( poll => 'w', fh => $self->{socket}->fileno, cb => sub {
 
-            if ($self->_state->can_write) {
+            # if the watcher was not updated, continue or stop watching depending on the can_write result
+            if ( $watcher_number == $self->{write_watcher_number} ){
 
-                $self->_watch_can_write_timeout( $timeout ); # refresh the timer and continue watching
+                if ($self->_state->can_write) {
 
-            } else {
+                    $self->_watch_can_write_timeout( $timeout ); # refresh the timer and continue watching
 
-                $self->_unwatch_can_write; # stop watching
+                } else {
+
+                    $self->_unwatch_can_write; # stop watching
+
+                }
 
             }
 
@@ -173,6 +182,8 @@ sub _watch_can_write {
 sub _watch_can_write_timeout {
 
     my ($self, $timeout) = @_;
+
+    undef $self->{ write_timeout_watcher }; # clear existing watcher
 
     return unless $timeout;
 

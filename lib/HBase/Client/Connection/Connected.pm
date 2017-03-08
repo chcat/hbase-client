@@ -87,7 +87,7 @@ sub can_write {
 
     }
 
-    return !!@$queue; # continue watching for can-write unless the queue is empty
+    return scalar @$queue; # continue watching for can-write unless the queue is empty
 
 }
 
