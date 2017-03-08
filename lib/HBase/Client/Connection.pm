@@ -150,26 +150,13 @@ sub _watch_can_write {
 
     $timeout //= $self->{write_timeout};
 
-    my $watcher_number = ++$self->{write_watcher_number};
-
-    $self->_watch_can_write_timeout( $timeout );
+    $self->_renew_write_timeout( $timeout );
 
     $self->{ write_watcher } = AnyEvent->io( poll => 'w', fh => $self->{socket}->fileno, cb => sub {
 
-            # if the watcher was not updated, continue or stop watching depending on the can_write result
-            if ( $watcher_number == $self->{write_watcher_number} ){
+            $self->_renew_write_timeout( $timeout ); # TODO renew the timer AFTER can_write completes, if the watcher is still the same
 
-                if ($self->_state->can_write) {
-
-                    $self->_watch_can_write_timeout( $timeout ); # refresh the timer and continue watching
-
-                } else {
-
-                    $self->_unwatch_can_write; # stop watching
-
-                }
-
-            }
+            $self->_state->can_write;
 
             return;
 
@@ -179,7 +166,7 @@ sub _watch_can_write {
 
 }
 
-sub _watch_can_write_timeout {
+sub _renew_write_timeout {
 
     my ($self, $timeout) = @_;
 

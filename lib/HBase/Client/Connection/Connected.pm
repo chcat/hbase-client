@@ -87,7 +87,9 @@ sub can_write {
 
     }
 
-    return scalar @$queue; # continue watching for can-write unless the queue is empty
+    $connection->_unwatch_can_write unless @$queue;
+
+    return;
 
 }
 

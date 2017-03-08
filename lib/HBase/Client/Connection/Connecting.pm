@@ -41,7 +41,11 @@ sub can_write {
 
     my ($self) = @_;
 
-    $self->connection->_connected;
+    my $connection = $self->connection;
+
+    $connection->_unwatch_can_write;
+
+    $connection->_connected;
 
     call( $self->{callback} );
 
