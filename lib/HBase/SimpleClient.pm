@@ -35,7 +35,7 @@ sub scan {
 
     my ($self, $table, $scan, $number_of_rows) = @_;
 
-    return HBase::SimpleScanner->new(
+    return HBase::SimpleClient::Scanner->new(
             client          => $self,
             table           => $table,
             scan            => $scan,
@@ -102,12 +102,12 @@ sub _transform_cell {
 
 }
 
-package HBase::SimpleScanner;
+package HBase::SimpleClient::Scanner;
 
 use v5.14;
 use warnings;
 
-use parent 'HBase::Scanner';
+use parent 'HBase::Client::Scanner';
 
 sub new {
 

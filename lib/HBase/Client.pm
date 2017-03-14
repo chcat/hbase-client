@@ -50,7 +50,7 @@ sub scan {
 
     my ($self, $table, $scan, $number_of_rows) = @_;
 
-    return HBase::Scanner->new(
+    return HBase::Client::Scanner->new(
             client          => $self,
             table           => $table,
             scan            => $scan,
@@ -71,7 +71,7 @@ sub DESTROY {
 
 }
 
-package HBase::Scanner;
+package HBase::Client::Scanner;
 
 use v5.14;
 use warnings;
