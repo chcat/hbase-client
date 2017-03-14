@@ -11,19 +11,19 @@ sub enter {
 
     my ($self, $callback, %args) = @_;
 
-    $self->{callback} = $callback;
-
     my $connection = $self->connection;
 
     if (my $error = $connection->_open_socket) {
 
-        $connection->_disconnected;
+        $connection->_disconnected( $error, $callback );
 
-        return callback $callback, $error;
+    } else {
+
+        $self->{callback} = $callback;
+
+        $connection->_watch_can_write( $args{timeout} );
 
     }
-
-    $connection->_watch_can_write( $args{timeout} );
 
     return;
 
@@ -31,9 +31,11 @@ sub enter {
 
 sub disconnect {
 
-    my ($self, @args) = @_;
+    my ($self, $reason) = @_;
 
-    return $self->connection->_disconnected( @args );
+    $self->connection->_disconnected( $reason, $self->{callback} );
+
+    return;
 
 }
 
@@ -45,9 +47,7 @@ sub can_write {
 
     $connection->_unwatch_can_write;
 
-    $connection->_connected;
-
-    call( $self->{callback} );
+    $connection->_connected( $self->{callback} );
 
     return;
 
@@ -57,9 +57,7 @@ sub can_write_timeout {
 
     my ($self) = @_;
 
-    $self->connection->_disconnected;
-
-    call( $self->{callback}, 'timeout' );
+    $self->connection->_disconnected( 'Connection timeout', $self->{callback} );
 
     return;
 }

@@ -24,7 +24,7 @@ sub new {
 
     }
 
-    my $node_pool = HBase::Client::NodePool->new();
+    my $node_pool = HBase::Client::NodePool->new( $args{node_pool} ? %{$args{node_pool}} : () );
 
     my $cluster = HBase::Client::Cluster->new(
             meta_holder_locator => $meta_holder_locator,

@@ -13,11 +13,9 @@ sub enter {
 
     $self->{write_progress} = 0;
 
-    my $connection = $self->connection;
+    $self->{write_queue} = [];
 
-    $connection->_watch_can_read;
-
-    $connection->_watch_can_write if @{$connection->_write_queue};
+    $self->connection->_watch_can_read;
 
     return;
 
@@ -25,9 +23,16 @@ sub enter {
 
 sub write {
 
-    my ($self, @args) = @_;
+    my ($self, $callback, $data_ref) = @_;
 
-    $self->SUPER::write( @args );
+    my $write = {
+            buffer_ref => $data_ref,
+            callback   => $callback
+        };
+
+    my $write_queue = $self->{write_queue};
+
+    push @$write_queue, $write;
 
     my $connection = $self->connection;
 
@@ -39,9 +44,19 @@ sub write {
 
 sub disconnect {
 
-    my ($self, @args) = @_;
+    my ($self, $reason) = @_;
 
-    return $self->connection->_disconnected( @args );
+    $self->connection->_disconnected( $reason );
+
+    my $write_queue = $self->{write_queue};
+
+    for my $write ( @$write_queue ){
+
+        call( $write->{callback}, $reason ? "Disconnected: $reason" : 'Disconnected' );
+
+    }
+
+    return;
 
 }
 
@@ -49,11 +64,9 @@ sub can_write {
 
     my ($self) = @_;
 
-    my $connection = $self->connection;
+    my $write_queue = $self->{write_queue};
 
-    my $queue = $connection->_write_queue;
-
-    my $write = $queue->[0];
+    my $write = $write_queue->[0];
 
     my ($buffer_ref, $callback) = @$write{ qw ( buffer_ref callback ) };
 
@@ -65,7 +78,7 @@ sub can_write {
 
     if ($error) {
 
-        $connection->_disconnected( "Write error: $error" );
+        $self->disconnect( "Write error: $error" );
 
         return;
 
@@ -75,7 +88,7 @@ sub can_write {
 
             $self->{write_progress} = 0;
 
-            shift @$queue;
+            shift @$write_queue;
 
             call( $callback );
 
@@ -87,7 +100,7 @@ sub can_write {
 
     }
 
-    $connection->_unwatch_can_write unless @$queue;
+    $connection->_unwatch_can_write unless @$write_queue;
 
     return;
 
@@ -97,7 +110,7 @@ sub can_write_timeout {
 
     my ($self) = @_;
 
-    $self->connection->_disconnected( 'Write timeout' );
+    $self->disconnect( 'Write timeout' );
 
     return;
 }
@@ -112,7 +125,7 @@ sub can_read {
 
     if ($error) {
 
-        $connection->_disconnected( "Read error: $error" );
+        $self->disconnect( "Read error: $error" );
 
     } else {
 

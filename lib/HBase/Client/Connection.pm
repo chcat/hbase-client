@@ -20,21 +20,17 @@ sub new {
 
     my $self = bless {
 
-            host                => $args{host},
-            port                => $args{port},
+            host                 => $args{host},
+            port                 => $args{port},
 
-            read_buffer_size    => $args{read_buffer_size} // 1024*64,
+            read_buffer_size     => $args{read_buffer_size} // 1024*64,
 
-            on_read             => $args{on_read},
-            on_connected        => $args{on_connected},
-            on_disconnected     => $args{on_disconnected},
+            on_read              => $args{on_read},
+            on_connect           => $args{on_connect},
+            on_disconnect        => $args{on_disconnect},
 
-            connect_timeout     => $args{connect_timeout} // 3,
-            write_timeout       => $args{write_timeout} // 3,
-
-            write_queue         => [],
-
-            write_watcher_number => 0,
+            connect_timeout      => $args{connect_timeout} // 3,
+            write_timeout        => $args{write_timeout} // 3,
 
         }, $class;
 
@@ -48,7 +44,7 @@ sub set_callbacks {
 
     my ($self, %args) = @_;
 
-    state $callbacks = [qw( on_read on_connected on_disconnected )];
+    state $callbacks = [qw( on_read on_connect on_disconnect )];
 
     @$self{ @$callbacks } = @args{ @$callbacks };
 
@@ -60,7 +56,7 @@ sub connect {
 
     my ($self, $callback, %args) = @_;
 
-    $self->_state->connect( $callback, timeout => $args{timeout} // $self->{connect_timeout} );
+    return $self->_state->connect( $callback, timeout => $args{timeout} // $self->{connect_timeout} );
 
 }
 
@@ -84,7 +80,7 @@ sub _connecting {
 
     my ($self, $callback, %args) = @_;
 
-    return $self->_state( 'HBase::Client::Connection::Connecting', $callback, %args );
+    $self->_state( 'HBase::Client::Connection::Connecting', $callback, %args );
 
     return;
 
@@ -92,11 +88,13 @@ sub _connecting {
 
 sub _connected {
 
-    my ($self) = @_;
+    my ($self, $callback) = @_;
 
     $self->_state( 'HBase::Client::Connection::Connected' );
 
-    call( $self->{on_connected} );
+    call( $callback );
+
+    call( $self->{on_connect} );
 
     return;
 
@@ -104,11 +102,13 @@ sub _connected {
 
 sub _disconnected {
 
-    my ($self, $reason) = @_;
+    my ($self, $reason, $callback) = @_;
 
-    $self->_state( 'HBase::Client::Connection::Disconnected', $reason );
+    $self->_state( 'HBase::Client::Connection::Disconnected' );
 
-    call( $self->{on_disconnected}, $reason);
+    call( $callback, $reason );
+
+    call( $self->{on_disconnect}, $reason);
 
     return;
 
@@ -137,8 +137,6 @@ sub _on_read {
     return;
 
 }
-
-sub _write_queue { $_[0]->{write_queue} }
 
 sub _watching_can_write { defined $_[0]->{write_watcher} }
 

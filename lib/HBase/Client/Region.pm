@@ -23,33 +23,21 @@ sub new {
 sub get_async {
     my ($self, @args) = @_;
 
-    return $self->_get_node->then( sub {
-            my ($node) = @_;
-
-            return $node->get_async( $self->specifier, @args );
-        } );
+    return $self->_get_node->get_async( $self->specifier, @args );
 
 }
 
 sub mutate_async {
     my ($self, @args) = @_;
 
-    return $self->_get_node->then( sub {
-            my ($node) = @_;
-
-            return $node->mutate_async( $self->specifier, @args );
-        } );
+    return $self->_get_node->mutate_async( $self->specifier, @args );
 
 }
 
 sub scan_async {
     my ($self, @args) = @_;
 
-    return $self->_get_node->then( sub {
-            my ($node) = @_;
-
-            return $node->scan_async( $self->specifier, @args );
-        } );
+    return $self->_get_node->scan_async( $self->specifier, @args );
 
 }
 

@@ -19,21 +19,6 @@ sub new {
 
 }
 
-sub write {
-
-    my ($self, $callback, $data_ref) = @_;
-
-    my $write_queue = $self->connection->_write_queue;
-
-    my $write = {
-            buffer_ref => $data_ref,
-            callback   => $callback
-        };
-
-    push @$write_queue, $write;
-
-}
-
 sub connection {
 
     my ($self) = @_;
