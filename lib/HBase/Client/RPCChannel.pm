@@ -100,7 +100,7 @@ sub _connect {
 
                 $self->{disconnected} = deferred;
 
-                return;
+                return $self;
 
             }, sub {
 
@@ -140,7 +140,7 @@ sub _write_connection_header {
 
             } else {
 
-                $deferred->resolve( $self );
+                $deferred->resolve;
 
             }
 
