@@ -46,7 +46,7 @@ sub _create_node {
 
     my $rpc = HBase::Client::RPCChannel->new( connection => $connection, timeout => 15 );
 
-    my $node = HBase::Client::Node->new( rpc => $rpc );
+    my $node = HBase::Client::Node->new( rpc => $rpc, pool => $self );
 
     return $node;
 
