@@ -140,7 +140,7 @@ sub _write_connection_header {
 
             } else {
 
-                $deferred->resolve;
+                $deferred->resolve( $self );
 
             }
 
