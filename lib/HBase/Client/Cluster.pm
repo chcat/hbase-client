@@ -122,7 +122,21 @@ sub scanner {
 
 }
 
-sub get_meta_region { shift->_get_region(meta_table_name); }
+sub get_meta_region {
+
+    my ($self) = @_;
+
+    return $self->_get_region(meta_table_name);
+
+}
+
+sub shutdown {
+
+    my ($self) = @_;
+
+    return $self->{node_pool}->shutdown;
+
+}
 
 sub _get_region {
 

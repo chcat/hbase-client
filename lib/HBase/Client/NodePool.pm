@@ -23,6 +23,18 @@ sub new {
 
 }
 
+sub shutdown {
+
+    my ($self) = @_;
+
+    $self->{shutdown} = 1;
+
+    $_->disconnect('Shutdown') for values %{$self->{nodes}};
+
+    return;
+
+}
+
 sub get_node {
 
     my ($self, $server) = @_;
@@ -57,6 +69,8 @@ sub reserve_connection {
     my ($self, $node) = @_;
 
     my $deferred = deferred;
+
+    return $deferred if $self->{shutdown};
 
     my $limit = $self->{connections_limit};
 
@@ -107,6 +121,8 @@ sub release_connection {
     delete $self->{disconnectable_nodes}->{$node};
 
     $self->{connections}--;
+
+    return if $self->{shutdown};
 
     my $waiting_queue = $self->{waiting_queue};
 
