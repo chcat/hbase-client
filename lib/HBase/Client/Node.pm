@@ -95,14 +95,10 @@ sub _rpc_call_async {
 
             my ($connected_rpc) = @_;
 
-            return $connected_rpc->call_async( @args )->then( sub {
-
-                    my (@results) = @_;
+            return $connected_rpc->call_async( @args )->finally( sub {
 
                     # allows the pool to disconnect the node if there are no pending calls
-                    $self->_pool->unblock_disconnecting( $self ) if --$self->{pending_requests_count} == 0; # TODO: handle scans
-
-                    return @results;
+                    $self->_pool->unblock_disconnecting( $self ) if --$self->{pending_requests_count} == 0; # TODO: handle scans properly
 
                 } );
 

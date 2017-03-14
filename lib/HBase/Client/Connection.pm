@@ -176,9 +176,22 @@ sub _renew_write_timeout {
 
     $self->{ write_timeout_watcher } = AnyEvent->timer( after => $timeout, cb => sub {
 
-            $self->_unwatch_can_write;
+            # It could have happen that the timeout is caused by the consumer code blocking the event loop that prevented
+            # AnyEvent's ready-to-write check. So we check if the socket is really broken.
 
-            $self->_state->can_write_timeout;
+            my ($error) = $self->_socket_write(\'',0,0);
+
+            if ($error){
+
+                $self->_unwatch_can_write;
+
+                $self->_state->can_write_timeout;
+
+            } else {
+
+                $self->_renew_write_timeout(1); # give it another chance
+
+            }
 
             return;
 
