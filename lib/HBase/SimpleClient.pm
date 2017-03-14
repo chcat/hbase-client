@@ -5,8 +5,6 @@ use warnings;
 
 use parent 'HBase::Client';
 
-use HBase::SimpleScanner;
-
 sub new { shift->SUPER::new( @_ ); }
 
 sub get_async {

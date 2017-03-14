@@ -10,8 +10,6 @@ use HBase::Client::Cluster;
 use HBase::Client::NodePool;
 use HBase::Client::ZookeeperMetaHolderLocator;
 
-use HBase::Scanner;
-
 sub new {
 
     my ($class, %args) = @_;
