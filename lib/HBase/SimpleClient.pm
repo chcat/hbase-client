@@ -107,7 +107,7 @@ package HBase::SimpleClient::Scanner;
 use v5.14;
 use warnings;
 
-use parent 'HBase::Client::Scanner';
+use parent -norequire 'HBase::Client::Scanner';
 
 sub new {
 
