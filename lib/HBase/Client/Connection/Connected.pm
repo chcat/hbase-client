@@ -64,6 +64,8 @@ sub can_write {
 
     my ($self) = @_;
 
+    my $connection = $self->connection;
+
     my $write_queue = $self->{write_queue};
 
     my $write = $write_queue->[0];
