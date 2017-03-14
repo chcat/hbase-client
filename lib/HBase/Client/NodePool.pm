@@ -82,7 +82,7 @@ sub block_disconnecting {
 
     my ($self, $node) = @_;
 
-    undef $self->{disconnectable_nodes}->{$node};
+    delete $self->{disconnectable_nodes}->{$node};
 
     return;
 
@@ -104,7 +104,7 @@ sub release_connection {
 
     my ($self, $node) = @_;
 
-    undef $self->{disconnectable_nodes}->{$node};
+    delete $self->{disconnectable_nodes}->{$node};
 
     $self->{connections}--;
 
