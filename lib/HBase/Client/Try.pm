@@ -55,7 +55,7 @@ sub delay ($&) {
     my $timer = $timers_count++;
 
     $timers->{$timer} = AnyEvent->timer(
-            after => $timeout,
+            after => $delay,
             cb => sub {
 
                     delete $timers->{$timer};
