@@ -13,6 +13,7 @@ our @EXPORT= qw(
         try
         retry
         done
+        delay
     );
 
 sub retry {
