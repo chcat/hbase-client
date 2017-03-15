@@ -55,6 +55,8 @@ sub delay ($&) {
 
     my $timer = $timers_count++;
 
+    AnyEvent->now_update;
+
     $timers->{$timer} = AnyEvent->timer(
             after => $delay,
             cb => sub {
