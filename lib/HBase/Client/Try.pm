@@ -97,7 +97,7 @@ sub _try_loop {
 
                     if (my $delay = $error->{delay}){
 
-                        return delay $delay, {+_try_loop( $sub, $deferred, $state )};
+                        return delay $delay, {_try_loop( $sub, $deferred, $state );};
 
                     } else {
 
