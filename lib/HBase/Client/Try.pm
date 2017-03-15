@@ -3,8 +3,10 @@ package HBase::Client::Try;
 use v5.14;
 use warnings;
 
+use AnyEvent;
 use Promises qw( deferred );
 use Scalar::Util qw( blessed );
+
 use Exporter 'import';
 
 our @EXPORT= qw(
@@ -41,6 +43,32 @@ sub try (&) {
 
 }
 
+sub delay ($&) {
+
+    my ($delay, $sub) = @_;
+
+    my $deferred = deferred;
+
+    state $timers = {};
+    state $timers_count = 0;
+
+    my $timer = $timers_count++;
+
+    $timers->{$timer} = AnyEvent->timer(
+            after => $timeout,
+            cb => sub {
+
+                    delete $timers->{$timer};
+
+                    $deferred->resolve();
+
+                }
+        );
+
+    return $deferred->promise->then( $sub );
+
+}
+
 sub _try_loop {
 
     my ($sub, $deferred, $state ) = @_;
@@ -67,7 +95,15 @@ sub _try_loop {
 
                 if (!defined $error->{count} || $error->{count} >= $state->{count}){
 
-                    return _try_loop( $sub, $deferred, $state ) ;
+                    if (my $delay = $error->{delay}){
+
+                        return delay $delay, {_try_loop( $sub, $deferred, $state )};
+
+                    } else {
+
+                        return _try_loop( $sub, $deferred, $state ) ;
+
+                    }
 
                 }
 

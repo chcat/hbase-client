@@ -29,7 +29,7 @@ sub region {
     my ($self) = @_;
 
     return $self->{meta_region} //= try {
-            $self->{cluster}->meta_server->then( sub {
+            $self->cluster->meta_server->then( sub {
 
                     my ($server) = @_;
 
@@ -57,6 +57,16 @@ sub region {
             die 'Unable to locate meta region holder';
 
         } );
+
+}
+
+sub invalidate {
+
+    my ($self) = @_;
+
+    undef $self->{meta_region};
+
+    return;
 
 }
 

@@ -102,6 +102,8 @@ sub mutate {
 }
 
 
+
+
 sub region {
 
     my ($self, $row) = @_;
@@ -150,6 +152,16 @@ sub region_before {
 
 }
 
+sub invalidate {
+
+    my ($self) = @_;
+
+    $self->{regions} = [];
+
+    return;
+
+}
+
 sub load {
 
     my ($self) = @_;
@@ -162,9 +174,7 @@ sub load {
             stop_row    => region_name( next_key( $self->name ) ), # "$tablename\x00,,"
         };
 
-    my $cluster = $self->cluster;
-
-    my $scanner = $cluster->table( meta_table_name )->scanner( $scan, 1000 );
+    my $scanner = $self->cluster->table( meta_table_name )->scanner( $scan, 1000 );
 
     my $regions = $self->{regions} = [];
 
