@@ -29,7 +29,7 @@ sub region {
     my ($self) = @_;
 
     return $self->{meta_region} //= try {
-            $self->{cluster}->{meta_holder_locator}->locate->then( sub {
+            $self->{cluster}->meta_server->then( sub {
 
                     my ($server) = @_;
 

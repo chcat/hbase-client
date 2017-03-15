@@ -35,9 +35,9 @@ sub new {
 
 }
 
-sub get_async { shift->_cluster->get( @_ ); }
+sub get_async { shift->_cluster->table( shift )->get( @_ ); }
 
-sub mutate_async { shift->_cluster->mutate( @_ ); }
+sub mutate_async { shift->_cluster->table( shift )->mutate( @_ ); }
 
 SYNC_METHODS: {
 
@@ -84,7 +84,7 @@ sub new {
 
     return bless {
             client  => $args{client},
-            scanner => $args{client}->_cluster->scanner( $args{table}, $args{scan}, $args{number_of_rows} // 1000 ),
+            scanner => $args{client}->_cluster->( $args{table} )->scanner( $args{scan}, $args{number_of_rows} // 1000 ),
         }, $class;
 
 }

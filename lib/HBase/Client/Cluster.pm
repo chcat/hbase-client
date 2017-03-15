@@ -33,116 +33,12 @@ sub new {
 
 }
 
-sub get {
-
-    my ($self, $table, $get) = @_;
-
-    return deferred->reject('Getting the closest row before is deprecated, use reverse scan instead!')->promise if $get->{closest_row_before};
-
-    try {
-
-        return $self->_get_region( $table, $get->{row} )
-            ->then( sub {
-
-                    my ($region) = @_;
-
-                    return $region->get_async( $get );
-                } )
-            ->catch( sub {
-
-                    my ($error) = @_;
-
-                    if (exception($error) eq 'org.apache.hadoop.hbase.NotServingRegionException' ){
-
-                        retry( count => 3, cause => "Got org.apache.hadoop.hbase.NotServingRegionException" );
-
-                    } else {
-
-                        die $error;
-
-                    }
-
-                } );
-
-    };
-
-}
-
-sub mutate {
-
-    my ($self, $table, $mutation, $condition, $nonce_group) = @_;
-
-    try {
-
-        return $self->_get_region( $table, $mutation->{row} )
-            ->then( sub {
-                    my ($region) = @_;
-
-                    return $region->mutate_async( $mutation, $condition, $nonce_group );
-                } )
-            ->catch( sub {
-
-                    my ($error) = @_;
-
-                    if (exception($error) eq 'org.apache.hadoop.hbase.NotServingRegionException' ){
-
-                        retry( count => 3, cause => "Got org.apache.hadoop.hbase.NotServingRegionException" );
-
-                    } else {
-
-                        die $error;
-
-                    }
-
-                } );
-    };
-
-}
-
-sub _table {
-
-    my ($self, $table_name) = @_;
-
-    return $self->{tables}->{$table_name} //= HBase::Client::Table->new(
-            cluster     => $self,
-            name        => $table_name,
-        );
-
-}
-
-sub scanner {
-
-    my ($self, $table_name, $scan, $number_of_rows) = @_;
-
-    return HBase::Client::TableScanner->new(
-            table               => $self->_table( $table_name ),
-            scan                => $scan,
-            number_of_rows      => $number_of_rows,
-        );
-
-}
-
-sub get_meta_region {
+sub meta_server {
 
     my ($self) = @_;
 
-    return $self->_get_region(meta_table_name);
+    return $self->{meta_holder_locator}->locate;
 
-}
-
-sub shutdown {
-
-    my ($self) = @_;
-
-    return $self->{node_pool}->shutdown;
-
-}
-
-sub _get_region {
-
-    my ($self, $table_name, $row) = @_;
-
-    return $self->_table( $table_name )->region( $row );
 }
 
 sub get_node {
@@ -153,11 +49,22 @@ sub get_node {
 
 }
 
-sub invalidate_meta_region {
+sub table {
+
+    my ($self, $table_name) = @_;
+
+    return $self->{tables}->{$table_name} //= HBase::Client::Table->new(
+            cluster     => $self,
+            name        => $table_name,
+        );
+
+}
+
+sub shutdown {
 
     my ($self) = @_;
 
-    return undef $self->{meta_region};
+    return $self->{node_pool}->shutdown;
 
 }
 

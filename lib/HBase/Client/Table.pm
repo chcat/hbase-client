@@ -23,6 +23,85 @@ sub new {
 
 }
 
+sub scanner {
+
+    my ($self, $scan, $number_of_rows) = @_;
+
+    return HBase::Client::TableScanner->new(
+            table               => $self,
+            scan                => $scan,
+            number_of_rows      => $number_of_rows,
+        );
+
+}
+
+sub get {
+
+    my ($self, $get) = @_;
+
+    return deferred->reject('Getting the closest row before is deprecated, use reverse scan instead!')->promise if $get->{closest_row_before};
+
+    try {
+
+        return $self->region( $get->{row} )
+            ->then( sub {
+
+                    my ($region) = @_;
+
+                    return $region->get_async( $get );
+                } )
+            ->catch( sub {
+
+                    my ($error) = @_;
+
+                    if (exception($error) eq 'org.apache.hadoop.hbase.NotServingRegionException' ){
+
+                        retry( count => 3, cause => "Got org.apache.hadoop.hbase.NotServingRegionException" );
+
+                    } else {
+
+                        die $error;
+
+                    }
+
+                } );
+
+    };
+
+}
+
+sub mutate {
+
+    my ($self, $mutation, $condition, $nonce_group) = @_;
+
+    try {
+
+        return $self->region( $mutation->{row} )
+            ->then( sub {
+                    my ($region) = @_;
+
+                    return $region->mutate_async( $mutation, $condition, $nonce_group );
+                } )
+            ->catch( sub {
+
+                    my ($error) = @_;
+
+                    if (exception($error) eq 'org.apache.hadoop.hbase.NotServingRegionException' ){
+
+                        retry( count => 3, cause => "Got org.apache.hadoop.hbase.NotServingRegionException" );
+
+                    } else {
+
+                        die $error;
+
+                    }
+
+                } );
+    };
+
+}
+
+
 sub region {
 
     my ($self, $row) = @_;
@@ -85,7 +164,7 @@ sub load {
 
     my $cluster = $self->cluster;
 
-    my $scanner = $cluster->scanner( meta_table_name, $scan, 1000 );
+    my $scanner = $cluster->table( meta_table_name )->scanner( $scan, 1000 );
 
     my $regions = $self->{regions} = [];
 
@@ -179,12 +258,7 @@ sub _scan_for_region {
 
     my ($self, $scan, $number_of_rows, $exclude_start) = @_;
 
-    return $self->_meta_region
-        ->then( sub {
-                my ($region) = @_;
-
-                return $region->scanner( $scan, $number_of_rows, $exclude_start )->next;
-            } )
+    return $self->cluster->table( meta_table_name )->scanner( $scan, $number_of_rows, $exclude_start )->next
         ->then( sub {
                 my ($response) = @_;
 
@@ -193,8 +267,6 @@ sub _scan_for_region {
             } );
 
 }
-
-sub _meta_region { shift->cluster->get_meta_region }
 
 sub _region_from_row {
 

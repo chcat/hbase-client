@@ -23,21 +23,21 @@ sub new {
 sub get_async {
     my ($self, @args) = @_;
 
-    return $self->_get_node->get_async( $self->specifier, @args );
+    return $self->_get_node->get_async( $self->_specifier, @args );
 
 }
 
 sub mutate_async {
     my ($self, @args) = @_;
 
-    return $self->_get_node->mutate_async( $self->specifier, @args );
+    return $self->_get_node->mutate_async( $self->_specifier, @args );
 
 }
 
 sub scan_async {
     my ($self, @args) = @_;
 
-    return $self->_get_node->scan_async( $self->specifier, @args );
+    return $self->_get_node->scan_async( $self->_specifier, @args );
 
 }
 
@@ -86,11 +86,7 @@ GETTERS: {
 
 }
 
-sub specifier { region_specifier( shift->name ) }
-
-sub has_region_before { shift->start ne '' }
-
-sub has_region_after { shift->end ne '' }
+sub _specifier { region_specifier( $_[0]->name ) }
 
 sub _get_node {
     my ($self) = @_;
