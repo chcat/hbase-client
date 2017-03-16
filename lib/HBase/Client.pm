@@ -59,7 +59,7 @@ sub scan {
 
 }
 
-sub _cluster { shift->{cluster}; }
+sub _cluster { $_[0]->{cluster}; }
 
 sub DESTROY {
     local $@;

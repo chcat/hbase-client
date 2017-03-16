@@ -11,7 +11,7 @@ sub get_async {
 
     my ($self, $table, $get) = @_;
 
-    $self->SUPER::get_async( $table, $get )->then( sub {
+    return $self->SUPER::get_async( $table, $get )->then( sub {
 
             my ($response) = @_;
 
@@ -27,7 +27,9 @@ sub get_async {
 
 sub mutate_async {
 
-    shift->SUPER::mutate_async( @_ );
+    my ($self, $table, $mutation, $condition, $nonce_group) = @_;
+
+    return $self->SUPER::mutate_async( $table, $mutation, $condition, $nonce_group );
 
 }
 

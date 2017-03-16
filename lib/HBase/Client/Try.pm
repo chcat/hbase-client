@@ -94,15 +94,23 @@ sub _try_loop {
 
             } elsif ($error_type eq 'HBase::Client::Try::Retry'){
 
-                $state->{count}++;
+                my $retry_attempt = $state->{count}++; # 0 ..
 
-                if (!defined $error->{count} || $error->{count} >= $state->{count}){
+                if (my $delays = $error->{delays}){
 
-                    if (my $delay = $error->{delay}){
+                    if ($retry_attempt < @$delays){
+
+                        my $delay = $delays->[retry_attempt];
 
                         return delay $delay, sub {_try_loop( $sub, $deferred, $state )};
 
-                    } else {
+                    }
+
+                } else {
+
+                    my $limit = $error->{count};
+
+                    if (!defined $limit || $retry_attempt < $limit){
 
                         return _try_loop( $sub, $deferred, $state ) ;
 

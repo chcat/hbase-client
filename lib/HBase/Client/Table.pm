@@ -54,15 +54,7 @@ sub get {
 
                     my ($error) = @_;
 
-                    if (exception($error) eq 'org.apache.hadoop.hbase.NotServingRegionException' ){
-
-                        retry( count => 3, cause => "Got org.apache.hadoop.hbase.NotServingRegionException" );
-
-                    } else {
-
-                        die $error;
-
-                    }
+                    return $self->handle_error( $error );
 
                 } );
 
@@ -86,22 +78,36 @@ sub mutate {
 
                     my ($error) = @_;
 
-                    if (exception($error) eq 'org.apache.hadoop.hbase.NotServingRegionException' ){
-
-                        retry( count => 3, cause => "Got org.apache.hadoop.hbase.NotServingRegionException" );
-
-                    } else {
-
-                        die $error;
-
-                    }
+                    return $self->handle_error( $error );
 
                 } );
     };
 
 }
 
+sub handle_error { # TODO
 
+    my ($self, $error) = @_;
+
+    warn $error;
+
+    if (exception($error) eq 'org.apache.hadoop.hbase.NotServingRegionException'
+        || exception($error) eq 'org.apache.hadoop.hbase.RegionMovedException'
+        || exception($error) eq 'org.apache.hadoop.hbase.RegionMovedException'){
+
+        $self->invalidate;
+
+        retry( delays => [0.25, 0.5, 1.5], cause => "Got NotServingRegionException" );
+
+    } else {
+
+        $self->invalidate;
+
+        retry( count => 3 );
+
+    }
+
+}
 
 
 sub region {
