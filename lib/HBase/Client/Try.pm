@@ -100,7 +100,7 @@ sub _try_loop {
 
                     if ($retry_attempt < @$delays){
 
-                        my $delay = $delays->[retry_attempt];
+                        my $delay = $delays->[$retry_attempt];
 
                         return delay $delay, sub {_try_loop( $sub, $deferred, $state )};
 
