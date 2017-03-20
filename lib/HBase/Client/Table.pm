@@ -205,6 +205,8 @@ sub load {
 
                 my ($error) = @_;
 
+                handle($error);
+
                 warn 'Error loading table '.$self->name.' : '.$error;
 
             } )

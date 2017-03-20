@@ -71,6 +71,8 @@ sub next {
 
                     my ($error) = @_;
 
+                    handle($error);
+
                     if (exception($error) eq 'org.apache.hadoop.hbase.UnknownScannerException' ){
                         # most likely we have our scanner timed out, so we retry requesting a new one
                         undef $self->{scanner};

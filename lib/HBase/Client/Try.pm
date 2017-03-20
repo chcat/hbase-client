@@ -14,6 +14,7 @@ our @EXPORT= qw(
         retry
         done
         delay
+        catchable
     );
 
 sub retry {
@@ -69,6 +70,18 @@ sub delay ($&) {
         );
 
     return $deferred->promise->then( $sub );
+
+}
+
+sub handle {
+
+    my ($error) = @_;
+
+    my $error_type = blessed $error // '';
+
+    die $error if $error_type eq 'HBase::Client::Try::Done' or $error_type eq 'HBase::Client::Try::Retry';
+
+    return;
 
 }
 
