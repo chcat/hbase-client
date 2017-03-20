@@ -9,21 +9,21 @@ use HBase::Client::Sync;
 
 sub new { shift->SUPER::new( @_ ); }
 
-# $table, $row, {columns => ["$family1", "$family2:$column2"], from => $from, to => $to, max_versions => $mv, existence_only => $eo}
+# $table, $row, {columns => ["$family1", "$family2:$column2"], from => $from, to => $to, max_versions => $mv, existence_only => $eo, timestamped => $ts}
 sub get_async {
 
-    my ($self, $table, $row, $get) = @_;
+    my ($self, $table, $row, $params) = @_;
 
     my $get_proto = {
             row             => $row,
-            max_versions    => $get->{max_versions} // 1,
-            existence_only  => $get->{existence_only} // 0,
+            max_versions    => $params->{max_versions} // 1,
+            existence_only  => $params->{existence_only} // 0,
         };
 
-    $get_proto->{time_range}->{from} = $get->{from} if defined $get->{from};
-    $get_proto->{time_range}->{to} = $get->{to} if defined $get->{to};
+    $get_proto->{time_range}->{from} = $params->{from} if defined $params->{from};
+    $get_proto->{time_range}->{to} = $params->{to} if defined $params->{to};
 
-    if (my $columns = $get->{columns}){
+    if (my $columns = $params->{columns}){
 
         my %columns_map;
         my $columns_proto = $get_proto->{column} = [];
@@ -49,7 +49,7 @@ sub get_async {
 
             return undef unless $cells and @$cells;
 
-            return $self->_transform_cell_array( $cells, $get_proto->{max_versions} > 1)->{$row};
+            return $self->_transform_cell_array( $cells, $get_proto->{max_versions} > 1 || $params->{timestamped})->{$row};
 
         } );
 
