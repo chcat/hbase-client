@@ -14,7 +14,7 @@ our @EXPORT= qw(
         retry
         done
         delay
-        catchable
+        handle
     );
 
 sub retry {

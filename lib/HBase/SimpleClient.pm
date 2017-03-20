@@ -90,7 +90,7 @@ sub put_async {
             $params ? %$params : (),
         };
 
-    return $self->mutate_async()
+    return $self->mutate_async($table, $mutation);
 }
 
 sub delete {
