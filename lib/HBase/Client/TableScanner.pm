@@ -75,10 +75,27 @@ sub next {
                         # most likely we have our scanner timed out, so we retry requesting a new one
                         undef $self->{scanner};
 
-                        retry( count => 3, cause => $error );
+                        retry( count => 3, cause => 'Got UnknownScannerException - most likely scanner timed out');
+
+                    } elsif (exception($error) eq 'org.apache.hadoop.hbase.NotServingRegionException'
+                        || exception($error) eq 'org.apache.hadoop.hbase.RegionMovedException'
+                        || exception($error) eq 'org.apache.hadoop.hbase.RegionMovedException'){
+
+                        warn $error;
+
+                        undef $self->{scanner};
+
+                        $self->{table}->invalidate;
+
+                        retry( delays => [0.25, 0.5, 1.5], cause => "Got NotServingRegionException" );
+
                     } else {
 
-                        die $error;
+                        warn $error;
+
+                        $self->{table}->invalidate;
+
+                        retry( count => 3, cause => "$error" );
 
                     }
 

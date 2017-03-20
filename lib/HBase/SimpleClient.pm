@@ -7,9 +7,39 @@ use parent 'HBase::Client';
 
 sub new { shift->SUPER::new( @_ ); }
 
+# $table, $row, {columns => ["$family1", "$family2:$column2"], from => $from, to => $to, max_versions => $mv, existence_only => $eo}
 sub get_async {
 
-    my ($self, $table, $get) = @_;
+    my ($self, $table, $row, $get) = @_;
+
+    if (my $columns = delete $get->{columns}){
+
+        my %columns_map;
+        my $columns_proto = $get->{column} = [];
+
+        for my $column (@$columns){
+
+            my ($family, $qualifier) = split ':', $column, 2;
+
+            my $family_qualifiers = $columns_map{ $family };
+
+            push @$columns_proto, { family => $family, qualifier => $columns_map{ $family } = $family_qualifiers = [] } unless $family_qualifiers;
+
+            push @$family_$qualifiers, $qualifier if $qualifier;
+        }
+
+    }
+
+    my ($from, $to) = delete @{$get}{ qw( from to ) };
+
+    if (defined $from or defined $to){
+
+        $get->{time_range} = {
+                defined $from ? (from => $from) : (),
+                defined $to ? (to => $to) : (),
+            };
+
+    }
 
     return $self->SUPER::get_async( $table, $get )->then( sub {
 
@@ -30,6 +60,48 @@ sub mutate_async {
     my ($self, $table, $mutation, $condition, $nonce_group) = @_;
 
     return $self->SUPER::mutate_async( $table, $mutation, $condition, $nonce_group );
+
+}
+
+# $table, $row => { "$family1:$column1" => $value1, "$family2:$column2" => $value2,...  }, { timestamp => $ts, nonce => $n  }
+sub put {
+
+    my ($self, $table, $row, $value, $params) = @_;
+
+    my %columns_map;
+    my @column_value_proto;
+
+    for my $key (keys %$value) {
+
+        my ($family, $qualifier) = split ':', $column, 2;
+
+        my $qualifier_values = $columns_map{ $family };
+
+        push @column_value_proto, { family => $family, qualifier_value => $columns_map{ $family } = $qualifier_values = [] } unless $qualifier_values;
+
+        push @$qualifier_values, { qualifier => $qualifier, value => $value->{ $key } };
+    }
+
+    my $mutation = {
+            row           => $row,
+            mutate_type   => HBase::Client::Proto::MutationProto::MutationType::PUT,
+            column_value  => \@column_value_proto,
+
+            $params ? %params : (),
+        };
+
+    return $self->mutate_async()
+}
+
+sub delete {
+
+
+}
+
+SYNC_METHODS: {
+
+    *{put} = sync( sub { shift->put_async( @_ ) } );
+    *{delete} = sync( sub { shift->delete_async( @_ )  } );
 
 }
 
