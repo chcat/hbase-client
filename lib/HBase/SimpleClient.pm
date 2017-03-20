@@ -87,7 +87,7 @@ sub put {
             mutate_type   => HBase::Client::Proto::MutationProto::MutationType::PUT,
             column_value  => \@column_value_proto,
 
-            $params ? %params : (),
+            $params ? %$params : (),
         };
 
     return $self->mutate_async()
