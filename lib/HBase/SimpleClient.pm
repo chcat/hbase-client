@@ -15,11 +15,13 @@ sub get_async {
     my ($self, $table, $row, $get) = @_;
 
     my $get_proto = {
-            row => $row,
+            row             => $row,
+            max_versions    => $get->{max_versions} // 1,
+            existence_only  => $get->{existence_only} // 0,
         };
 
-    @{$get_proto}{ qw ( max_versions existence_only ) } = @{$get}{ qw ( max_versions existence_only ) };
-    @{$get_proto->{time_range}}{ qw ( from to ) } = @{$get}{ qw ( from to ) } if defined $get->{from} or defined $get->{to};
+    $get_proto->{time_range}->{from} = $get->{from} if defined $get->{from};
+    $get_proto->{time_range}->{to} = $get->{to} if defined $get->{to};
 
     if (my $columns = $get->{columns}){
 
