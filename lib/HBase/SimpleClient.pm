@@ -73,7 +73,7 @@ sub put {
 
     for my $key (keys %$value) {
 
-        my ($family, $qualifier) = split ':', $column, 2;
+        my ($family, $qualifier) = split ':', $key, 2;
 
         my $qualifier_values = $columns_map{ $family };
 
