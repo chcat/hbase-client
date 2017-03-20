@@ -14,10 +14,17 @@ sub get_async {
 
     my ($self, $table, $row, $get) = @_;
 
-    if (my $columns = delete $get->{columns}){
+    my $get_proto = {
+            row => $row,
+        };
+
+    @{$get_proto}{ qw ( max_versions, existence_only ) } = @{$get}{ qw ( max_versions, existence_only ) };
+    @{$get_proto->{time_range}{ qw ( from to ) } = @{$get}{ qw ( from to ) } if defined $get->{from} or defined $get->{to};
+
+    if (my $columns = $get->{columns}){
 
         my %columns_map;
-        my $columns_proto = $get->{column} = [];
+        my $columns_proto = $get_proto->{column} = [];
 
         for my $column (@$columns){
 
@@ -32,18 +39,7 @@ sub get_async {
 
     }
 
-    my ($from, $to) = delete @{$get}{ qw( from to ) };
-
-    if (defined $from or defined $to){
-
-        $get->{time_range} = {
-                defined $from ? (from => $from) : (),
-                defined $to ? (to => $to) : (),
-            };
-
-    }
-
-    return $self->SUPER::get_async( $table, $get )->then( sub {
+    return $self->SUPER::get_async( $table, $get_proto )->then( sub {
 
             my ($response) = @_;
 
@@ -51,7 +47,7 @@ sub get_async {
 
             return undef unless $cells and @$cells;
 
-            return $self->_transform_cell_array( $cells, $get->{max_versions} // 1 > 1);
+            return $self->_transform_cell_array( $cells, $get_proto->{max_versions} // 1 > 1);
 
         } );
 
