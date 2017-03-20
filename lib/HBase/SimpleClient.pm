@@ -64,7 +64,7 @@ sub mutate_async {
 }
 
 # $table, $row => { "$family1:$column1" => $value1, "$family2:$column2" => $value2,...  }, { timestamp => $ts, nonce => $n  }
-sub put {
+sub put_async {
 
     my ($self, $table, $row, $value, $params) = @_;
 
