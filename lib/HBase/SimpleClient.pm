@@ -5,6 +5,8 @@ use warnings;
 
 use parent 'HBase::Client';
 
+use HBase::Client::Sync;
+
 sub new { shift->SUPER::new( @_ ); }
 
 # $table, $row, {columns => ["$family1", "$family2:$column2"], from => $from, to => $to, max_versions => $mv, existence_only => $eo}
