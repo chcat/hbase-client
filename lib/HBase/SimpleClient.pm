@@ -19,7 +19,7 @@ sub get_async {
         };
 
     @{$get_proto}{ qw ( max_versions existence_only ) } = @{$get}{ qw ( max_versions existence_only ) };
-    @{$get_proto->{time_range}{ qw ( from to ) } = @{$get}{ qw ( from to ) } if defined $get->{from} or defined $get->{to};
+    @{$get_proto->{time_range}}{ qw ( from to ) } = @{$get}{ qw ( from to ) } if defined $get->{from} or defined $get->{to};
 
     if (my $columns = $get->{columns}){
 
