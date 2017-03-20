@@ -25,7 +25,7 @@ sub get_async {
 
             push @$columns_proto, { family => $family, qualifier => $columns_map{ $family } = $family_qualifiers = [] } unless $family_qualifiers;
 
-            push @$family_$qualifiers, $qualifier if $qualifier;
+            push @$family_qualifiers, $qualifier if $qualifier;
         }
 
     }
