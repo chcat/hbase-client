@@ -49,7 +49,7 @@ sub get_async {
 
             return undef unless $cells and @$cells;
 
-            return $self->_transform_cell_array( $cells, $get_proto->{max_versions} // 1 > 1);
+            return $self->_transform_cell_array( $cells, $get_proto->{max_versions} > 1);
 
         } );
 
@@ -189,7 +189,7 @@ sub new {
 
     my $self = $class->SUPER::new( %args );
 
-    $self->{multi_versions} = $args{scan}->{max_versions} // 1 > 1;
+    $self->{multi_versions} = ($args{scan}->{max_versions} // 1) > 1;
 
     return $self;
 }

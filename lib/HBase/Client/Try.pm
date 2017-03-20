@@ -110,7 +110,7 @@ sub _try_loop {
 
                     my $limit = $error->{count};
 
-                    if (!defined $limit || $retry_attempt < $limit){
+                    if (!defined $limit or $retry_attempt < $limit){
 
                         return _try_loop( $sub, $deferred, $state ) ;
 
