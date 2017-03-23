@@ -76,7 +76,7 @@ package HBase::Client::Scanner;
 use v5.14;
 use warnings;
 
-use HBase::Client::Sync;
+use HBase::Client::Try qw( sync );
 
 sub new {
 
