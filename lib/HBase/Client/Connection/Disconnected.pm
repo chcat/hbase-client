@@ -5,8 +5,6 @@ use warnings;
 
 use parent 'HBase::Client::Connection::State';
 
-use HBase::Client::Sync;
-
 sub enter {
 
     my ($self) = @_;
