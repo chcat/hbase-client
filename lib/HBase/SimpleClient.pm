@@ -5,7 +5,7 @@ use warnings;
 
 use parent 'HBase::Client';
 
-use HBase::Client::Sync;
+use HBase::Client::Try qw( sync );
 
 sub new { shift->SUPER::new( @_ ); }
 
