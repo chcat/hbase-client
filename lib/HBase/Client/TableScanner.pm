@@ -88,15 +88,17 @@ sub next {
 
                         $self->{table}->invalidate;
 
-                        delays => [0.25, 0.5, 1, 2, 4, 8, 10, 10], cause => exception($error)
+                        retry( delays => [0.25, 0.5, 1, 2, 4, 8, 10, 10], cause => exception($error) );
 
                     } else {
 
-                        warn $error;
+                        warn exception($error) eq 'unknown' ? $error : exception($error);
+
+                        undef $self->{scanner};
 
                         $self->{table}->invalidate;
 
-                        retry( count => 3, cause => "$error" );
+                        retry( delays => [0.25, 0.5, 1, 2, 4, 8, 10, 10], cause => exception($error) );
 
                     }
 

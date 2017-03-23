@@ -104,11 +104,11 @@ sub handle_error { # TODO
 
     } else {
 
-        warn $error;
+        warn exception($error) eq 'unknown' ? $error : exception($error);
 
         $self->invalidate;
 
-        retry( count => 5 );
+        retry( delays => [0.25, 0.5, 1, 2, 4, 8, 10, 10], cause => exception($error) );
 
     }
 
