@@ -5,7 +5,7 @@ use warnings;
 
 use parent 'HBase::Client::Connection::State';
 
-use HBase::Client::Sync;
+use HBase::Client::Try qw( call );
 
 sub enter {
 

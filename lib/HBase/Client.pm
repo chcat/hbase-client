@@ -5,7 +5,7 @@ use warnings;
 
 our $VERSION = '0.0.1';
 
-use HBase::Client::Sync;
+use HBase::Client::Try qw( sync );
 use HBase::Client::Cluster;
 use HBase::Client::NodePool;
 use HBase::Client::ZookeeperMetaHolderLocator;

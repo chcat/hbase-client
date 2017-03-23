@@ -4,7 +4,10 @@ use v5.14;
 use warnings;
 
 use HBase::Client::Utils;
-use HBase::Client::Try;
+use HBase::Client::Region;
+use HBase::Client::Proto::Loader;
+use HBase::Client::TableScanner;
+use HBase::Client::Try qw( try retry done handle );
 use List::BinarySearch qw( binsearch_pos );
 use Promises qw( deferred );
 use Scalar::Util qw( weaken );
@@ -89,21 +92,23 @@ sub handle_error { # TODO
 
     my ($self, $error) = @_;
 
-    warn $error;
+    handle($error);
 
     if (exception($error) eq 'org.apache.hadoop.hbase.NotServingRegionException'
         || exception($error) eq 'org.apache.hadoop.hbase.RegionMovedException'
-        || exception($error) eq 'org.apache.hadoop.hbase.RegionMovedException'){
+        || exception($error) eq 'org.apache.hadoop.hbase.regionserver.RegionServerStoppedException'){
 
         $self->invalidate;
 
-        retry( delays => [0.25, 0.5, 1.5], cause => "Got NotServingRegionException" );
+        retry( delays => [0.25, 0.5, 1, 2, 4, 8, 10, 10], cause => exception($error) );
 
     } else {
 
+        warn $error;
+
         $self->invalidate;
 
-        retry( count => 3 );
+        retry( count => 5 );
 
     }
 
@@ -193,7 +198,13 @@ sub load {
 
                         if ($response){
 
-                            push @$regions, $self->_region_from_row($_) for @{$response->get_results_list // []};
+                            for my $row (@{$response->get_results_list // []}){
+
+                                my $region = $self->_region_from_row($row);
+
+                                push @$regions, $region if $region;
+
+                            }
 
                             retry( cause => 'Check for more regions' );
 
@@ -204,8 +215,6 @@ sub load {
         ->catch( sub {
 
                 my ($error) = @_;
-
-                handle($error);
 
                 warn 'Error loading table '.$self->name.' : '.$error;
 
@@ -306,7 +315,7 @@ sub _region_from_row {
 
     my $table = $table_name->get_qualifier;
 
-    if ( $self->name eq ( $namespace eq 'default' ? '' : $namespace . ':') . $table) {
+    if (!$region_info->get_offline && $self->name eq ( $namespace eq 'default' ? '' : $namespace . ':') . $table) {
         return HBase::Client::Region->new(
                 name        => $region_name,
                 server      => $row->{info}->{server}->[0]->{value},

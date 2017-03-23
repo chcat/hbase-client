@@ -12,7 +12,7 @@ use HBase::Client::Connection::Connecting;
 use HBase::Client::Connection::Connected;
 use HBase::Client::Connection::Disconnected;
 
-use HBase::Client::Sync;
+use HBase::Client::Try qw( call );
 
 sub new {
 

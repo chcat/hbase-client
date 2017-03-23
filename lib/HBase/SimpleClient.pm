@@ -10,6 +10,7 @@ use HBase::Client::Sync;
 sub new { shift->SUPER::new( @_ ); }
 
 # $table, $row, {columns => ["$family1", "$family2:$column2"], from => $from, to => $to, max_versions => $mv, existence_only => $eo, timestamped => $ts}
+# returns { "$family1:$column1" => $value1, "$family2:$column2" => $value2,...  }
 sub get_async {
 
     my ($self, $table, $row, $params) = @_;

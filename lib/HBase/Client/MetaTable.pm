@@ -6,7 +6,7 @@ use warnings;
 use parent 'HBase::Client::Table';
 
 use HBase::Client::Utils;
-use HBase::Client::Try;
+use HBase::Client::Try qw( try retry done handle );
 use Promises qw( deferred );
 use Scalar::Util qw( weaken );
 

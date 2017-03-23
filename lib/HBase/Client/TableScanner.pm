@@ -4,7 +4,7 @@ use v5.14;
 use warnings;
 
 use HBase::Client::Utils;
-use HBase::Client::Try;
+use HBase::Client::Try qw( try retry done handle );
 
 use Promises qw( deferred );
 
@@ -81,15 +81,14 @@ sub next {
 
                     } elsif (exception($error) eq 'org.apache.hadoop.hbase.NotServingRegionException'
                         || exception($error) eq 'org.apache.hadoop.hbase.RegionMovedException'
-                        || exception($error) eq 'org.apache.hadoop.hbase.RegionMovedException'){
+                        || exception($error) eq 'org.apache.hadoop.hbase.regionserver.RegionServerStoppedException'){
 
-                        warn $error;
 
                         undef $self->{scanner};
 
                         $self->{table}->invalidate;
 
-                        retry( delays => [0.25, 0.5, 1.5], cause => "Got NotServingRegionException" );
+                        delays => [0.25, 0.5, 1, 2, 4, 8, 10, 10], cause => exception($error)
 
                     } else {
 

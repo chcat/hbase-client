@@ -3,15 +3,8 @@ package HBase::Client::Cluster;
 use v5.14;
 use warnings;
 
-use HBase::Client::TableScanner;
-use HBase::Client::Proto::Loader;
-use HBase::Client::Utils;
-use HBase::Client::Try;
-use HBase::Client::Region;
 use HBase::Client::Table;
 use HBase::Client::MetaTable;
-
-use Promises qw( deferred );
 
 sub new {
 
@@ -27,7 +20,9 @@ sub new {
             tables              => {},
         }, $class;
 
-    $self->{tables}->{+meta_table_name} = HBase::Client::MetaTable->new( cluster => $self );
+    my $meta_table = HBase::Client::MetaTable->new( cluster => $self );
+
+    $self->{tables}->{ $meta_table->name } = $meta_table;
 
     return $self;
 

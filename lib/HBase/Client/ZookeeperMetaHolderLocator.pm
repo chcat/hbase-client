@@ -1,5 +1,7 @@
 package HBase::Client::ZookeeperMetaHolderLocator;
 
+# TODO: find a more async-friendly zookeeper client
+
 use v5.14;
 use warnings;
 

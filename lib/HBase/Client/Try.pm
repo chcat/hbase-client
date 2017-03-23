@@ -9,13 +9,32 @@ use Scalar::Util qw( blessed );
 
 use Exporter 'import';
 
-our @EXPORT= qw(
+our @EXPORT_OK= qw(
         try
         retry
         done
         delay
         handle
+        call
+        sync
+        timeout
     );
+
+sub try (&) {
+
+    my ($sub) = @_;
+
+    my $deferred = deferred;
+
+    my $state = {
+            count => 0,
+        };
+
+    _try_loop( $sub, $deferred, $state );
+
+    return $deferred->promise;
+
+}
 
 sub retry {
 
@@ -29,17 +48,71 @@ sub done {
 
 }
 
-sub try (&) {
+sub sync {
 
     my ($sub) = @_;
 
+    return sub {
+
+            my $done = AnyEvent->condvar;
+
+            my ($result, $has_error, $error);
+
+            $sub->( @_ )
+                ->then( sub { $result = shift; }, sub { $error = shift; $has_error = 1; } )
+                ->finally( sub { $done->send; } );
+
+            $done->recv;
+
+            die $error if $has_error;
+
+            return $result;
+
+        };
+}
+
+sub call {
+
+    my ($sub, @args) = @_;
+
+    $sub->(@args) if $sub;
+
+    return;
+}
+
+sub timeout ($&) {
+
+    my ($timeout, $sub) = @_;
+
     my $deferred = deferred;
 
-    my $state = {
-            count => 0,
-        };
+    state $timers = {};
+    state $timers_count = 0;
 
-    _try_loop( $sub, $deferred, $state );
+    my $timer = $timers_count++;
+
+    AnyEvent->now_update;
+
+    $timers->{$timer} = AnyEvent->timer(
+            after => $timeout,
+            cb => sub {
+
+                    delete $timers->{$timer};
+
+                    $deferred->reject('TIMEOUT');
+
+                }
+        );
+
+    $sub->()->then( sub {
+
+            $deferred->resolve(@_);
+
+        }, sub {
+
+            $deferred->reject(@_);
+
+        } )->finally( sub { delete $timers->{$timer} } );
 
     return $deferred->promise;
 
