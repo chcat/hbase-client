@@ -12,8 +12,6 @@ use HBase::Client::Connection::Connecting;
 use HBase::Client::Connection::Connected;
 use HBase::Client::Connection::Disconnected;
 
-use HBase::Client::Try qw( call );
-
 sub new {
 
     my ($class, %args) = @_;
@@ -92,9 +90,9 @@ sub _connected {
 
     $self->_state( 'HBase::Client::Connection::Connected' );
 
-    call( $callback );
+    $callback->() if $callback;
 
-    call( $self->{on_connect} );
+    $self->{on_connect}->() if $self->{on_connect};
 
     return;
 
@@ -106,9 +104,9 @@ sub _disconnected {
 
     $self->_state( 'HBase::Client::Connection::Disconnected' );
 
-    call( $callback, $reason );
+    $callback->( $reason ) if $callback;
 
-    call( $self->{on_disconnect}, $reason);
+    $self->{on_disconnect}->( $reason ) if $self->{on_disconnect};
 
     return;
 
@@ -132,7 +130,7 @@ sub _on_read {
 
     my ($self, $data_ref) = @_;
 
-    call( $self->{on_read}, $data_ref );
+    $self->{on_read}->( $data_ref ) if $self->{on_read};
 
     return;
 

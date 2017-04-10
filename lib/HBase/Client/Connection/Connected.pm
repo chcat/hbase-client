@@ -5,8 +5,6 @@ use warnings;
 
 use parent 'HBase::Client::Connection::State';
 
-use HBase::Client::Try qw( call );
-
 sub enter {
 
     my ($self) = @_;
@@ -48,11 +46,13 @@ sub disconnect {
 
     $self->connection->_disconnected( $reason );
 
-    my $write_queue = $self->{write_queue};
+    for my $write ( @{ $self->{write_queue} } ){
 
-    for my $write ( @$write_queue ){
+        if (my $callback = $write->{callback}){
 
-        call( $write->{callback}, $reason ? "Disconnected: $reason" : 'Disconnected' );
+            $callback->( $reason ? "Disconnected: $reason" : 'Disconnected' );
+
+        }
 
     }
 
@@ -92,7 +92,7 @@ sub can_write {
 
             shift @$write_queue;
 
-            call( $callback );
+            $callback->() if $callback;
 
         } else {
 

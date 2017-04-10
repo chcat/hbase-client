@@ -39,14 +39,11 @@ sub get_async { shift->_cluster->table( shift )->get( @_ ); }
 
 sub mutate_async { shift->_cluster->table( shift )->mutate( @_ ); }
 
-SYNC_METHODS: {
+sub get { sync { shift->get_async( @_ ) }; }
 
-    *{get} = sync( sub { shift->get_async( @_ ) } );
-    *{mutate} = sync( sub { shift->mutate_async( @_ ) } );
+sub mutate { sync { shift->mutate_async( @_ ) }; }
 
-}
-
-sub scan {
+sub scanner {
 
     my ($self, $table, $scan, $number_of_rows) = @_;
 
@@ -95,9 +92,9 @@ sub next_async {
 
 }
 
-SYNC_METHODS: {
+sub next {
 
-    *{next} = sync( sub { shift->next_async( @_ ) } );
+    return sync { shift->next_async( @_ ) };
 
 }
 

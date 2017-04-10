@@ -15,7 +15,6 @@ our @EXPORT_OK= qw(
         done
         delay
         handle
-        call
         sync
         timeout
     );
@@ -48,36 +47,24 @@ sub done {
 
 }
 
-sub sync {
+sub sync (&) {
 
     my ($sub) = @_;
 
-    return sub {
+    my $done = AnyEvent->condvar;
 
-            my $done = AnyEvent->condvar;
+    my (@result, $has_error, $error);
 
-            my ($result, $has_error, $error);
+    $sub->()
+        ->then( sub { @result = @_; }, sub { ($error) = @_; $has_error = 1; } )
+        ->finally( sub { $done->send; } );
 
-            $sub->( @_ )
-                ->then( sub { $result = shift; }, sub { $error = shift; $has_error = 1; } )
-                ->finally( sub { $done->send; } );
+    $done->recv;
 
-            $done->recv;
+    die $error if $has_error;
 
-            die $error if $has_error;
+    return @result;
 
-            return $result;
-
-        };
-}
-
-sub call {
-
-    my ($sub, @args) = @_;
-
-    $sub->(@args) if $sub;
-
-    return;
 }
 
 sub timeout ($&) {
@@ -104,15 +91,21 @@ sub timeout ($&) {
                 }
         );
 
-    $sub->()->then( sub {
+    $sub->()
+        ->finally( sub {
 
-            $deferred->resolve(@_);
+                delete $timers->{$timer};
 
-        }, sub {
+            } )
+        ->then( sub {
 
-            $deferred->reject(@_);
+                $deferred->resolve(@_);
 
-        } )->finally( sub { delete $timers->{$timer} } );
+            }, sub {
+
+                $deferred->reject(@_);
+
+            } );
 
     return $deferred->promise;
 

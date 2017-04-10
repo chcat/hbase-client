@@ -1,13 +1,15 @@
-package HBase::SimpleClient;
+package HBase::Facade;
 
 use v5.14;
 use warnings;
 
-use parent 'HBase::Client';
+sub new {
 
-use HBase::Client::Try qw( sync );
+    my ($class, %args) = @_;
 
-sub new { shift->SUPER::new( @_ ); }
+    return bless { client => $args{client} }, $class;
+
+}
 
 # $table, $row, {columns => ["$family1", "$family2:$column2"], from => $from, to => $to, max_versions => $mv, existence_only => $eo, timestamped => $ts}
 # returns { "$family1:$column1" => $value1, "$family2:$column2" => $value2,...  }
@@ -42,7 +44,7 @@ sub get_async {
 
     }
 
-    return $self->SUPER::get_async( $table, $get_proto )->then( sub {
+    return $self->{client}->get_async( $table, $get_proto )->then( sub {
 
             my ($response) = @_;
 
@@ -56,13 +58,7 @@ sub get_async {
 
 }
 
-sub mutate_async {
-
-    my ($self, $table, $mutation, $condition, $nonce_group) = @_;
-
-    return $self->SUPER::mutate_async( $table, $mutation, $condition, $nonce_group );
-
-}
+sub get { sync { shift->get_async( @_ ) }; }
 
 # $table, $row => { "$family1:$column1" => $value1, "$family2:$column2" => $value2,...  }, { timestamp => $ts, nonce => $n  }
 sub put_async {
@@ -91,30 +87,19 @@ sub put_async {
             $params ? %$params : (),
         };
 
-    return $self->mutate_async($table, $mutation);
+    return $self->{client}->mutate_async($table, $mutation);
 }
 
-sub delete {
+sub put { sync { shift->put_async( @_ ) }; }
 
-
-}
-
-SYNC_METHODS: {
-
-    *{put} = sync( sub { shift->put_async( @_ ) } );
-    *{delete} = sync( sub { shift->delete_async( @_ )  } );
-
-}
-
-sub scan {
+sub scanner {
 
     my ($self, $table, $scan, $number_of_rows) = @_;
 
-    return HBase::SimpleClient::Scanner->new(
-            client          => $self,
-            table           => $table,
-            scan            => $scan,
-            number_of_rows  => $number_of_rows,
+    return HBase::Facade::Scanner->new(
+            scanner         => $self->{client}->scanner( $table, $scan, $number_of_rows ),
+            multi_versions  => ($args{scan}->{max_versions} // 1) > 1,
+            facade          => $self,
         );
 
 }
@@ -177,29 +162,27 @@ sub _transform_cell {
 
 }
 
-package HBase::SimpleClient::Scanner;
+package HBase::Facade::Scanner;
 
 use v5.14;
 use warnings;
-
-use parent -norequire, 'HBase::Client::Scanner';
 
 sub new {
 
     my ($class, %args) = @_;
 
-    my $self = $class->SUPER::new( %args );
-
-    $self->{multi_versions} = ($args{scan}->{max_versions} // 1) > 1;
-
-    return $self;
+    return bless {
+            scanner        => $args{scanner},
+            multi_versions => $args{multi_versions},
+            facade         => $args{facade},
+        }, $class;
 }
 
 sub next_async {
 
     my $self = shift;
 
-    return $self->SUPER::next_async( @_ )
+    return $self->{scanner}->next_async( @_ )
         ->then( sub {
 
                 my ($response) = @_;
@@ -208,12 +191,14 @@ sub next_async {
 
                 my $rows = {};
 
-                $self->{client}->_transform_cell_array( $_->get_cell_list // [], $self->{multi_versions}, $rows ) for @{$response->get_results_list};
+                $self->{facade}->_transform_cell_array( $_->get_cell_list // [], $self->{multi_versions}, $rows ) for @{$response->get_results_list};
 
                 return $rows;
 
             } );
 
 }
+
+sub next { sync { shift->next( @_ ) }; }
 
 1;
