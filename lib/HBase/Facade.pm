@@ -3,6 +3,8 @@ package HBase::Facade;
 use v5.14;
 use warnings;
 
+use HBase::Client::Try qw( sync );
+
 sub new {
 
     my ($class, %args) = @_;
