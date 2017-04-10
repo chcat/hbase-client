@@ -58,7 +58,7 @@ sub get_async {
 
 }
 
-sub get { sync { shift->get_async( @_ ) }; }
+sub get { sync shift->get_async( @_ ); }
 
 # $table, $row => { "$family1:$column1" => $value1, "$family2:$column2" => $value2,...  }, { timestamp => $ts, nonce => $n  }
 sub put_async {
@@ -90,7 +90,7 @@ sub put_async {
     return $self->{client}->mutate_async($table, $mutation);
 }
 
-sub put { sync { shift->put_async( @_ ) }; }
+sub put { sync shift->put_async( @_ ); }
 
 sub scanner {
 
@@ -199,6 +199,6 @@ sub next_async {
 
 }
 
-sub next { sync { shift->next( @_ ) }; }
+sub next { sync shift->next_async( @_ ); }
 
 1;

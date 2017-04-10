@@ -47,16 +47,15 @@ sub done {
 
 }
 
-sub sync (&) {
+sub sync ($) {
 
-    my ($sub) = @_;
+    my ($promise) = @_;
 
     my $done = AnyEvent->condvar;
 
     my (@result, $has_error, $error);
 
-    $sub->()
-        ->then( sub { @result = @_; }, sub { ($error) = @_; $has_error = 1; } )
+    $promise->then( sub { @result = @_; }, sub { ($error) = @_; $has_error = 1; } )
         ->finally( sub { $done->send; } );
 
     $done->recv;

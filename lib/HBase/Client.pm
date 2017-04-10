@@ -39,9 +39,9 @@ sub get_async { shift->_cluster->table( shift )->get( @_ ); }
 
 sub mutate_async { shift->_cluster->table( shift )->mutate( @_ ); }
 
-sub get { sync { shift->get_async( @_ ) }; }
+sub get { sync shift->get_async( @_ ); }
 
-sub mutate { sync { shift->mutate_async( @_ ) }; }
+sub mutate { sync shift->mutate_async( @_ ); }
 
 sub scanner {
 
@@ -94,7 +94,7 @@ sub next_async {
 
 sub next {
 
-    return sync { shift->next_async( @_ ) };
+    return sync shift->next_async( @_ );
 
 }
 
