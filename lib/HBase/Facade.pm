@@ -98,7 +98,7 @@ sub scanner {
 
     return HBase::Facade::Scanner->new(
             scanner         => $self->{client}->scanner( $table, $scan, $number_of_rows ),
-            multi_versions  => ($args{scan}->{max_versions} // 1) > 1,
+            multi_versions  => ($scan->{max_versions} // 1) > 1,
             facade          => $self,
         );
 
