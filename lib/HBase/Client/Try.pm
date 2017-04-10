@@ -53,16 +53,16 @@ sub sync ($) {
 
     my $done = AnyEvent->condvar;
 
-    my (@result, $has_error, $error);
+    my ($result, $has_error, $error);
 
-    $promise->then( sub { @result = @_; }, sub { ($error) = @_; $has_error = 1; } )
+    $promise->then( sub { $result = shift; }, sub { $error = shift; $has_error = 1; } )
         ->finally( sub { $done->send; } );
 
     $done->recv;
 
     die $error if $has_error;
 
-    return @result;
+    return $result;
 
 }
 
