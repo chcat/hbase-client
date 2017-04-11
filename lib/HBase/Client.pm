@@ -5,7 +5,7 @@ use warnings;
 
 our $VERSION = '0.0.1';
 
-use HBase::Client::Try qw( sync );
+use HBase::Client::Try qw( sync timeout );
 use HBase::Client::Cluster;
 use HBase::Client::NodePool;
 use HBase::Client::ZookeeperMetaHolderLocator;
@@ -31,13 +31,30 @@ sub new {
 
     return bless {
             cluster => $cluster,
+            timeout => $args{timeout},
         }, $class;
 
 }
 
-sub get_async { shift->_cluster->table( shift )->get( @_ ); }
+sub get_async {
 
-sub mutate_async { shift->_cluster->table( shift )->mutate( @_ ); }
+    my ($self, $table, $get, $options) = @_;
+
+    my $timeout = $options && exists $options->{timeout} ? $options->{timeout} : $self->{timeout};
+
+    return timeout $timeout, { $self->_cluster->table( $table )->get( $get ) };
+
+}
+
+sub mutate_async {
+
+    my ($self, $mutation, $condition, $nonce_group, $options) = @_;
+
+    my $timeout = $options && exists $options->{timeout} ? $options->{timeout} : $self->{timeout};
+
+    return timeout $timeout, { $self->_cluster->table( $table )->mutate( $mutation, $condition, $nonce_group ) };
+
+}
 
 sub get { sync shift->get_async( @_ ); }
 
@@ -47,7 +64,7 @@ sub scanner {
 
     my ($self, $table, $scan, $number_of_rows) = @_;
 
-    return HBase::Client::Scanner->new(
+    return HBase::Client::Scanner->_new(
             client          => $self,
             table           => $table,
             scan            => $scan,
@@ -75,7 +92,19 @@ use warnings;
 
 use HBase::Client::Try qw( sync );
 
-sub new {
+sub next_async {
+
+    my ($self, $options) = @_;
+
+    my $timeout = $options && exists $options->{timeout} ? $options->{timeout} : $self->{client}->{timeout};
+
+    return  timeout $timeout, { $self->{scanner}->next };
+
+}
+
+sub next { sync shift->next_async( @_ ); }
+
+sub _new {
 
     my ($class, %args) = @_;
 
@@ -83,18 +112,6 @@ sub new {
             client  => $args{client},
             scanner => $args{client}->_cluster->table( $args{table} )->scanner( $args{scan}, $args{number_of_rows} // 1000 ),
         }, $class;
-
-}
-
-sub next_async {
-
-    return shift->{scanner}->next( @_ );
-
-}
-
-sub next {
-
-    return sync shift->next_async( @_ );
 
 }
 

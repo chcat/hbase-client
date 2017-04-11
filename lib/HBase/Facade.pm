@@ -17,7 +17,7 @@ sub new {
 # returns { "$family1:$column1" => $value1, "$family2:$column2" => $value2,...  }
 sub get_async {
 
-    my ($self, $table, $row, $params) = @_;
+    my ($self, $table, $row, $params, $options) = @_;
 
     my $get_proto = {
             row             => $row,
@@ -28,25 +28,9 @@ sub get_async {
     $get_proto->{time_range}->{from} = $params->{from} if defined $params->{from};
     $get_proto->{time_range}->{to} = $params->{to} if defined $params->{to};
 
-    if (my $columns = $params->{columns}){
+    $get_proto->{column} = $self->_parse_column_array_proto( $params->{columns} ) if $params->{columns};
 
-        my %columns_map;
-        my $columns_proto = $get_proto->{column} = [];
-
-        for my $column (@$columns){
-
-            my ($family, $qualifier) = split ':', $column, 2;
-
-            my $family_qualifiers = $columns_map{ $family };
-
-            push @$columns_proto, { family => $family, qualifier => $columns_map{ $family } = $family_qualifiers = [] } unless $family_qualifiers;
-
-            push @$family_qualifiers, $qualifier if $qualifier;
-        }
-
-    }
-
-    return $self->{client}->get_async( $table, $get_proto )->then( sub {
+    return $self->{client}->get_async( $table, $get_proto, $options )->then( sub {
 
             my ($response) = @_;
 
@@ -65,31 +49,17 @@ sub get { sync shift->get_async( @_ ); }
 # $table, $row => { "$family1:$column1" => $value1, "$family2:$column2" => $value2,...  }, { timestamp => $ts, nonce => $n  }
 sub put_async {
 
-    my ($self, $table, $row, $value, $params) = @_;
-
-    my %columns_map;
-    my @column_value_proto;
-
-    for my $key (keys %$value) {
-
-        my ($family, $qualifier) = split ':', $key, 2;
-
-        my $qualifier_values = $columns_map{ $family };
-
-        push @column_value_proto, { family => $family, qualifier_value => $columns_map{ $family } = $qualifier_values = [] } unless $qualifier_values;
-
-        push @$qualifier_values, { qualifier => $qualifier, value => $value->{ $key } };
-    }
+    my ($self, $table, $row, $value, $params, $options) = @_;
 
     my $mutation = {
             row           => $row,
             mutate_type   => HBase::Client::Proto::MutationProto::MutationType::PUT,
-            column_value  => \@column_value_proto,
+            column_value  => $self->_parse_column_value_array_proto( $value ),
 
             $params ? %$params : (),
         };
 
-    return $self->{client}->mutate_async($table, $mutation);
+    return $self->{client}->mutate_async($table, $mutation, undef, undef, $options);
 }
 
 sub put { sync shift->put_async( @_ ); }
@@ -98,12 +68,55 @@ sub scanner {
 
     my ($self, $table, $scan, $number_of_rows) = @_;
 
-    return HBase::Facade::Scanner->new(
+    return HBase::Facade::Scanner->_new(
             scanner         => $self->{client}->scanner( $table, $scan, $number_of_rows ),
             multi_versions  => ($scan->{max_versions} // 1) > 1,
             facade          => $self,
         );
 
+}
+
+sub _parse_column_array_proto {
+
+    my ($self, $columns) = @_;
+
+    my @columns_proto;
+    my %columns_map;
+
+    for my $column (@$columns){
+
+        my ($family, $qualifier) = split ':', $column, 2;
+
+        my $family_qualifiers = $columns_map{ $family };
+
+        push @$columns_proto, { family => $family, qualifier => $columns_map{ $family } = $family_qualifiers = [] } unless $family_qualifiers;
+
+        push @$family_qualifiers, $qualifier if $qualifier;
+    }
+
+    return \@columns_proto;
+
+}
+
+sub _parse_column_value_array_proto {
+
+    my ($self, $row_value) = @_;
+
+    my @column_value_proto;
+    my %columns_map;
+
+    for my $key (keys %$row_value) {
+
+        my ($family, $qualifier) = split ':', $key, 2;
+
+        my $qualifier_values = $columns_map{ $family };
+
+        push @column_value_proto, { family => $family, qualifier_value => $columns_map{ $family } = $qualifier_values = [] } unless $qualifier_values;
+
+        push @$qualifier_values, { qualifier => $qualifier, value => $row_value->{ $key } };
+    }
+
+    return \@column_value_proto;
 }
 
 sub _transform_cell_array {
@@ -171,22 +184,11 @@ use warnings;
 
 use HBase::Client::Try qw( sync );
 
-sub new {
-
-    my ($class, %args) = @_;
-
-    return bless {
-            scanner        => $args{scanner},
-            multi_versions => $args{multi_versions},
-            facade         => $args{facade},
-        }, $class;
-}
-
 sub next_async {
 
-    my $self = shift;
+    my ($self, $options) = @_;
 
-    return $self->{scanner}->next_async( @_ )
+    return $self->{scanner}->next_async( $options )
         ->then( sub {
 
                 my ($response) = @_;
@@ -204,5 +206,16 @@ sub next_async {
 }
 
 sub next { sync shift->next_async( @_ ); }
+
+sub _new {
+
+    my ($class, %args) = @_;
+
+    return bless {
+            scanner        => $args{scanner},
+            multi_versions => $args{multi_versions},
+            facade         => $args{facade},
+        }, $class;
+}
 
 1;

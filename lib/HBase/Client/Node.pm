@@ -60,7 +60,7 @@ sub mutate_async {
             region      => $region,
             mutation    => $mutation,
             $condition ? (condition => $condition) : (),
-            defined $nonce_group ? (nonce_group => $nonce_group) : (),
+            $nonce_group ? (nonce_group => $nonce_group) : (),
         } );
 
     return $self->_rpc_call_async( MUTATE, $request );

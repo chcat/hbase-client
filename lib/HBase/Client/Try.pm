@@ -70,6 +70,8 @@ sub timeout ($&) {
 
     my ($timeout, $sub) = @_;
 
+    return $sub->() unless ($timeout // 0) > 0;
+
     my $deferred = deferred;
 
     state $timers = {};
