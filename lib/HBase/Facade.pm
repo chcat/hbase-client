@@ -89,7 +89,7 @@ sub _parse_column_array_proto {
 
         my $family_qualifiers = $columns_map{ $family };
 
-        push @$columns_proto, { family => $family, qualifier => $columns_map{ $family } = $family_qualifiers = [] } unless $family_qualifiers;
+        push @columns_proto, { family => $family, qualifier => $columns_map{ $family } = $family_qualifiers = [] } unless $family_qualifiers;
 
         push @$family_qualifiers, $qualifier if $qualifier;
     }
