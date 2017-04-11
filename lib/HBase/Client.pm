@@ -48,7 +48,7 @@ sub get_async {
 
 sub mutate_async {
 
-    my ($self, $mutation, $condition, $nonce_group, $options) = @_;
+    my ($self, $table, $mutation, $condition, $nonce_group, $options) = @_;
 
     my $timeout = $options && exists $options->{timeout} ? $options->{timeout} : $self->{timeout};
 
