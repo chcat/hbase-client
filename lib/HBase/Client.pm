@@ -90,7 +90,7 @@ package HBase::Client::Scanner;
 use v5.14;
 use warnings;
 
-use HBase::Client::Try qw( sync );
+use HBase::Client::Try qw( sync timeout );
 
 sub next_async {
 
@@ -98,7 +98,7 @@ sub next_async {
 
     my $timeout = $options && exists $options->{timeout} ? $options->{timeout} : $self->{client}->{timeout};
 
-    return  timeout $timeout, sub { $self->{scanner}->next };
+    return timeout $timeout, sub { $self->{scanner}->next };
 
 }
 
