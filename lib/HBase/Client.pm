@@ -42,7 +42,7 @@ sub get_async {
 
     my $timeout = $options && exists $options->{timeout} ? $options->{timeout} : $self->{timeout};
 
-    return timeout $timeout, { $self->_cluster->table( $table )->get( $get ) };
+    return timeout $timeout, sub { $self->_cluster->table( $table )->get( $get ) };
 
 }
 
@@ -52,7 +52,7 @@ sub mutate_async {
 
     my $timeout = $options && exists $options->{timeout} ? $options->{timeout} : $self->{timeout};
 
-    return timeout $timeout, { $self->_cluster->table( $table )->mutate( $mutation, $condition, $nonce_group ) };
+    return timeout $timeout, sub { $self->_cluster->table( $table )->mutate( $mutation, $condition, $nonce_group ) };
 
 }
 
@@ -98,7 +98,7 @@ sub next_async {
 
     my $timeout = $options && exists $options->{timeout} ? $options->{timeout} : $self->{client}->{timeout};
 
-    return  timeout $timeout, { $self->{scanner}->next };
+    return  timeout $timeout, sub { $self->{scanner}->next };
 
 }
 
