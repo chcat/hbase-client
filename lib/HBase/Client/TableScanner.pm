@@ -13,7 +13,9 @@ sub new {
     my ($class, %args) = @_;
 
     my $self = bless {
-            %args,
+            table               => $args{table},
+            scan                => $args{scan},
+            number_of_rows      => $args{number_of_rows} // 1000,
             current_start       => $args{scan}->{start_row} // '',
             stop_row            => $args{scan}->{stop_row},
             reversed            => $args{scan}->{reversed},
@@ -25,7 +27,9 @@ sub new {
 
 sub next {
 
-    my ($self) = @_;
+    my ($self, $options) = @_;
+
+    my $number_of_rows = $options->{number_of_rows} // $self->{number_of_rows};
 
     try {
 
@@ -40,14 +44,22 @@ sub next {
 
                     $self->{completed} = 1 && done(undef) unless $scanner;
 
-                    return $scanner->next;
+                    return $scanner->next( {number_of_rows => $number_of_rows} );
 
                 } )
             ->then( sub {
 
                     my ($response) = @_;
 
+                    if ($self->{exclude_start} && my @results = @{$response->get_results_list // []}){
+                        if ($results[0]->get_cell(0)->get_row eq $self->{current_start}){
+                            shift @results;
+                            $response->set_results_list( [@results] );
+                        }
+                    }
+
                     if (my @results = @{$response->get_results_list // []}){
+
                         # update the last seen row to be able to recover after scanner loss
                         $self->{current_start} = $results[-1]->get_cell(0)->get_row;
                         $self->{exclude_start} = 1,

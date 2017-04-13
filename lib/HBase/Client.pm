@@ -31,44 +31,45 @@ sub new {
 
     return bless {
             cluster => $cluster,
-            timeout => $args{timeout},
+            timeout => $args{timeout} // 60,
         }, $class;
-
-}
-
-sub get_async {
-
-    my ($self, $table, $get, $options) = @_;
-
-    my $timeout = $options && exists $options->{timeout} ? $options->{timeout} : $self->{timeout};
-
-    return timeout $timeout, sub { $self->_cluster->table( $table )->get( $get ) };
-
-}
-
-sub mutate_async {
-
-    my ($self, $table, $mutation, $condition, $nonce_group, $options) = @_;
-
-    my $timeout = $options && exists $options->{timeout} ? $options->{timeout} : $self->{timeout};
-
-    return timeout $timeout, sub { $self->_cluster->table( $table )->mutate( $mutation, $condition, $nonce_group ) };
 
 }
 
 sub get { sync shift->get_async( @_ ); }
 
+sub get_async {
+
+    my ($self, $table, $get, $options) = @_;
+
+    my $timeout = $options->{timeout} // $self->{timeout};
+
+    return timeout $timeout, sub { $self->_cluster->table( $table )->get( $get ) };
+
+}
+
 sub mutate { sync shift->mutate_async( @_ ); }
+
+sub mutate_async {
+
+    my ($self, $table, $mutation, $condition, $nonce_group, $options) = @_;
+
+    my $timeout = $options->{timeout} // $self->{timeout};
+
+    return timeout $timeout, sub { $self->_cluster->table( $table )->mutate( $mutation, $condition, $nonce_group ) };
+
+}
 
 sub scanner {
 
-    my ($self, $table, $scan, $number_of_rows) = @_;
+    my ($self, $table, $scan, $options) = @_;
 
     return HBase::Client::Scanner->_new(
             client          => $self,
             table           => $table,
             scan            => $scan,
-            number_of_rows  => $number_of_rows,
+            number_of_rows  => $options->{number_of_rows},
+            timeout         => $options->{timeout} // $self->{timeout},
         );
 
 }
@@ -96,9 +97,10 @@ sub next_async {
 
     my ($self, $options) = @_;
 
-    my $timeout = $options && exists $options->{timeout} ? $options->{timeout} : $self->{client}->{timeout};
+    my $number_of_rows = $options->{number_of_rows} // $self->{number_of_rows};
+    my $timeout = $options->{timeout} // $self->{timeout};
 
-    return timeout $timeout, sub { $self->{scanner}->next };
+    return timeout $timeout, sub { $self->{scanner}->next( { number_of_rows => $number_of_rows } ) };
 
 }
 
@@ -109,8 +111,10 @@ sub _new {
     my ($class, %args) = @_;
 
     return bless {
-            client  => $args{client},
-            scanner => $args{client}->_cluster->table( $args{table} )->scanner( $args{scan}, $args{number_of_rows} // 1000 ),
+            client         => $args{client}, # keep the link to the client to avoid gc
+            scanner        => $args{client}->_cluster->table( $args{table} )->scanner( $args{scan} ),
+            number_of_rows => $args{number_of_rows} // 1000,
+            timeout        => $args{timeout} // 60,
         }, $class;
 
 }

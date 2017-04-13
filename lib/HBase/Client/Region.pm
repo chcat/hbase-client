@@ -43,13 +43,12 @@ sub scan_async {
 
 sub scanner {
 
-    my ($self, $scan, $number_of_rows, $exclude_start) = @_;
+    my ($self, $scan, $number_of_rows) = @_;
 
     return HBase::Client::RegionScanner->new(
             region              => $self,
             scan                => $scan,
             number_of_rows      => $number_of_rows,
-            exclude_start       => $exclude_start,
         );
 
 }

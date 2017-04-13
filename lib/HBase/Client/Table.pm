@@ -28,12 +28,12 @@ sub new {
 
 sub scanner {
 
-    my ($self, $scan, $number_of_rows) = @_;
+    my ($self, $scan, $options) = @_;
 
     return HBase::Client::TableScanner->new(
             table               => $self,
             scan                => $scan,
-            number_of_rows      => $number_of_rows,
+            number_of_rows      => $options{number_of_rows} // 1000,
         );
 
 }
@@ -42,7 +42,7 @@ sub get {
 
     my ($self, $get) = @_;
 
-    return deferred->reject('Getting the closest row before is deprecated, use reverse scan instead!')->promise if $get->{closest_row_before};
+    return deferred->reject('Getting the closest row before is deprecated since HBase 2.0.0, use reverse scan instead.')->promise if $get->{closest_row_before};
 
     try {
 
@@ -260,11 +260,11 @@ sub _region_before {
     my ($self, $region) = @_;
 
     my $scan = {
-            start_row   => $region->name,
+            start_row   => region_name( $self->name, $region->start), # the trick is that any region containing the current region's start row has an id
             reversed    => 1,
         };
 
-    return $self->_scan_for_region( $scan, 2, 1 );
+    return $self->_scan_for_region( $scan );
 
 }
 
@@ -273,19 +273,20 @@ sub _region {
     my ($self, $row) = @_;
 
     my $scan = {
-            start_row   => region_name( $self->name, $row, '99999999999999'),
+            start_row   => region_name( $self->name, $row, '99999999999999'), # nines are to get the most recently open instance of the region
             reversed    => 1,
         };
 
-    return $self->_scan_for_region( $scan, 1 );
+    return $self->_scan_for_region( $scan );
 
 }
 
 sub _scan_for_region {
 
-    my ($self, $scan, $number_of_rows, $exclude_start) = @_;
+    my ($self, $scan) = @_;
 
-    return $self->cluster->table( meta_table_name )->scanner( $scan, $number_of_rows, $exclude_start )->next
+    # here we take advantage of the meta-table having a single region that allows us to use unbuffered scanner
+    return $self->cluster->table( meta_table_name )->scanner( $scan, {number_of_rows => 1} )->next
         ->then( sub {
                 my ($response) = @_;
 
