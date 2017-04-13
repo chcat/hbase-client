@@ -5,7 +5,7 @@ use warnings;
 
 our $VERSION = '0.0.1';
 
-use HBase::Client::Try qw( sync try handle retry done timeout );
+use HBase::Client::Try qw( sync timeout );
 use HBase::Client::Cluster;
 use HBase::Client::NodePool;
 use HBase::Client::ZookeeperMetaHolderLocator;
@@ -93,7 +93,7 @@ package HBase::Client::Scanner;
 use v5.14;
 use warnings;
 
-use HBase::Client::Try qw( sync timeout );
+use HBase::Client::Try qw( sync timeout try handle retry done);
 
 sub next_async {
 
