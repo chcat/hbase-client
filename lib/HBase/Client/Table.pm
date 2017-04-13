@@ -288,9 +288,9 @@ sub _scan_for_region {
     # here we take advantage of the meta-table having a single region that allows us to use unbuffered scanner
     return $self->cluster->table( meta_table_name )->scanner( $scan, {number_of_rows => 1} )->next
         ->then( sub {
-                my ($response) = @_;
+                my ($rows) = @_;
 
-                return $response->results_size ? $self->_region_from_row( $response->get_results(0) ) : undef;
+                return $rows && @$rows ? $self->_region_from_row( $rows->[0] ) : undef;
 
             } );
 
