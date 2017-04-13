@@ -51,7 +51,7 @@ sub next {
 
                     my ($response) = @_;
 
-                    if ($self->{exclude_start} && my @results = @{$response->get_results_list // []}){
+                    if ($self->{exclude_start} && (my @results = @{$response->get_results_list // []})){
                         if ($results[0]->get_cell(0)->get_row eq $self->{current_start}){
                             shift @results;
                             $response->set_results_list( [@results] );
