@@ -33,7 +33,7 @@ sub scanner {
     return HBase::Client::TableScanner->new(
             table               => $self,
             scan                => $scan,
-            number_of_rows      => $options{number_of_rows} // 1000,
+            number_of_rows      => $options->{number_of_rows} // 1000,
         );
 
 }
