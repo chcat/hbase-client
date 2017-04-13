@@ -185,7 +185,7 @@ sub load {
             stop_row    => region_name( next_key( $self->name ) ), # "$tablename\x00,,"
         };
 
-    my $scanner = $self->cluster->table( meta_table_name )->scanner( $scan, 1000 );
+    my $scanner = $self->cluster->table( meta_table_name )->scanner( $scan );
 
     my $regions = $self->{regions} = [];
 
