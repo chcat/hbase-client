@@ -191,13 +191,13 @@ sub next_async {
     return $self->{scanner}->next_async( $options )
         ->then( sub {
 
-                my ($response) = @_;
+                my ($results) = @_;
 
-                return undef unless $response;
+                return undef unless $results;
 
                 my $rows = {};
 
-                $self->{facade}->_transform_cell_array( $_->get_cell_list // [], $self->{multi_versions}, $rows ) for @{$response->get_results_list};
+                $self->{facade}->_transform_cell_array( $_->get_cell_list // [], $self->{multi_versions}, $rows ) for @$results;
 
                 return $rows;
 

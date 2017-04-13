@@ -5,10 +5,12 @@ use warnings;
 
 our $VERSION = '0.0.1';
 
-use HBase::Client::Try qw( sync timeout );
+use HBase::Client::Try qw( sync try handle retry done timeout );
 use HBase::Client::Cluster;
 use HBase::Client::NodePool;
 use HBase::Client::ZookeeperMetaHolderLocator;
+
+use Promises qw( deferred );
 
 sub new {
 
@@ -97,10 +99,35 @@ sub next_async {
 
     my ($self, $options) = @_;
 
-    my $number_of_rows = $options->{number_of_rows} // $self->{number_of_rows};
-    my $timeout = $options->{timeout} // $self->{timeout};
+    my $buffer = $self->{buffer};
 
-    return timeout $timeout, sub { $self->{scanner}->next( { number_of_rows => $number_of_rows } ) };
+    my $number_of_rows = $options->{number_of_rows} // $self->{number_of_rows};
+
+    return try {
+
+            done([splice @$buffer, 0, $number_of_rows]) if $number_of_rows <= @$buffer;
+
+            my $timeout = $options->{timeout} // $self->{timeout};
+
+            timeout( $timeout, sub { $self->{scanner}->next( {number_of_rows => $number_of_rows} ) } )->then( sub {
+
+                    my ($response) = @_;
+
+                    if ($response){
+
+                        push @$buffer, @$response;
+
+                        retry( cause => 'Got more rows' );
+
+                    } else {
+
+                        done($buffer);
+
+                    }
+
+                } );
+
+        }
 
 }
 
@@ -115,6 +142,8 @@ sub _new {
             scanner        => $args{client}->_cluster->table( $args{table} )->scanner( $args{scan} ),
             number_of_rows => $args{number_of_rows} // 1000,
             timeout        => $args{timeout} // 60,
+            buffer         => [],
+            rows_in_buffer => 0,
         }, $class;
 
 }
