@@ -10,8 +10,6 @@ use HBase::Client::Cluster;
 use HBase::Client::NodePool;
 use HBase::Client::ZookeeperMetaHolderLocator;
 
-use Promises qw( deferred );
-
 sub new {
 
     my ($class, %args) = @_;
@@ -94,6 +92,7 @@ use v5.14;
 use warnings;
 
 use HBase::Client::Try qw( sync timeout try handle retry done);
+use Promises qw( deferred );
 
 sub next_async {
 
@@ -105,7 +104,7 @@ sub next_async {
 
     return try {
 
-            done([splice @$buffer, 0, $number_of_rows]) if $number_of_rows <= @$buffer;
+            return deferred->resolve([splice @$buffer, 0, $number_of_rows]) if $number_of_rows <= @$buffer;
 
             my $timeout = $options->{timeout} // $self->{timeout};
 
