@@ -194,11 +194,11 @@ sub load {
 
                 $scanner->next->then( sub {
 
-                        my ($response) = @_;
+                        my ($rows) = @_;
 
-                        if ($response){
+                        if ($rows){
 
-                            for my $row (@{$response->get_results_list // []}){
+                            for my $row (@$rows){
 
                                 my $region = $self->_region_from_row($row);
 
