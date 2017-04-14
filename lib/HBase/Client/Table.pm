@@ -9,7 +9,7 @@ use HBase::Client::Proto::Loader;
 use HBase::Client::TableScanner;
 use HBase::Client::Try qw( try retry done handle );
 use List::BinarySearch qw( binsearch_pos );
-use Promises qw( deferred );
+use Promises qw( deferred collect );
 use Scalar::Util qw( weaken );
 
 sub new {
@@ -87,6 +87,26 @@ sub mutate {
     };
 
 }
+
+
+sub exec_service {
+
+    my ($self, $request, $service, $method) = @_;
+
+    $self->load->then( sub {
+        my ($regions) = @_;
+
+        my @promises = map $_->exec_service_async( $request, $service, $method ), @$regions;
+
+        return collect( @promises );
+
+    })->then( sub {
+
+        return \@_;
+
+    });
+}
+
 
 sub handle_error { # TODO
 
@@ -212,16 +232,19 @@ sub load {
 
                     });
             }
+        ->then( sub {
+
+                undef $self->{loading}; # release the loading process lock
+
+                return $regions;
+            } )
         ->catch( sub {
 
                 my ($error) = @_;
 
-                warn 'Error loading table '.$self->name.' : '.$error;
-
-            } )
-        ->finally( sub {
-
                 undef $self->{loading}; # release the loading process lock
+
+                $self->handle_error($error);
 
             } );
 
