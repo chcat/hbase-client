@@ -41,6 +41,12 @@ sub scan_async {
 
 }
 
+sub exec_service_async {
+    my ($self, @args) = @_;
+
+    return $self->_get_node->exec_service_async( $self->_specifier, @args );
+}
+
 sub scanner {
 
     my ($self, $scan, $number_of_rows) = @_;

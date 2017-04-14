@@ -11,6 +11,7 @@ use Scalar::Util qw( weaken );
 use constant GET => { name => 'Get', response_type=>'HBase::Client::Proto::GetResponse' };
 use constant MUTATE => { name => 'Mutate', response_type=>'HBase::Client::Proto::MutateResponse' };
 use constant SCAN => { name => 'Scan', response_type=>'HBase::Client::Proto::ScanResponse' };
+use constant EXEC_SERVICE => { name => 'ExecService', response_type => 'HBase::Client::Proto::CoprocessorServiceResponse' };
 
 sub new {
 
@@ -35,6 +36,26 @@ sub disconnect {
     $self->_rpc->disconnect( $reason ) if $self->{connected};
 
     return;
+
+}
+
+sub exec_service_async {
+
+    my ($self, $region, $request, $service, $method) = @_;
+
+    my $call = HBase::Client::Proto::CoprocessorServiceCall->new( {
+        service_name => $service,
+        method_name  => $method,
+        request      => $request->encode,
+        row          => '',
+    } );
+
+    my $cp_request = HBase::Client::Proto::CoprocessorServiceRequest->new( {
+        region => $region,
+        call   => $call,
+    } );
+
+    return $self->_rpc_call_async( EXEC_SERVICE, $cp_request );
 
 }
 
