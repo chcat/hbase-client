@@ -18,6 +18,8 @@
 
  //This file includes protocol buffers used in MapReduce only.
 
+syntax = "proto2";
+
 option java_package = "org.apache.hadoop.hbase.protobuf.generated";
 option java_outer_classname = "MapReduceProtos";
 option java_generate_equals_and_hash = true;

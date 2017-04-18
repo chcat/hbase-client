@@ -15,7 +15,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import "Tracing.proto"; 
+
+syntax = "proto2";
+
+import "Tracing.proto";
 import "HBase.proto";
 
 option java_package = "org.apache.hadoop.hbase.protobuf.generated";

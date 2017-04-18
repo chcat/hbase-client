@@ -16,6 +16,8 @@
  * limitations under the License.
  */
 
+syntax = "proto2";
+
 // ZNode data in hbase are serialized protobufs with a four byte
 // 'magic' 'PBUF' prefix.
 
