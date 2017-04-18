@@ -96,7 +96,7 @@ sub exec_service {
     $self->load->then( sub {
         my ($regions) = @_;
 
-        my @promises = map $_->exec_service_async( $request, $call ), @$regions;
+        my @promises = map $_->exec_service_async( $call ), @$regions;
 
         return collect( @promises );
 
