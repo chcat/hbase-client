@@ -60,16 +60,16 @@ sub mutate_async {
 
 }
 
+sub exec_service { sync shift->exec_service_async( @_ ); }
+
 sub exec_service_async {
 
-    my ($self, $table, $request, $service, $method, $options) = @_;
+    my ($self, $table, $call, $options) = @_;
 
-    my $timeout = $options && exists $options->{timeout} ? $options->{timeout} : $self->{timeout};
+    my $timeout = $options->{timeout} // $self->{timeout};
 
-    return timeout $timeout, sub { $self->_cluster->table( $table )->exec_service( $request, $service, $method ) };
+    return timeout $timeout, sub { $self->_cluster->table( $table )->exec_service( $call ) };
 }
-
-sub exec_service { sync shift->exec_service_async( @_ ); }
 
 sub scanner {
 
@@ -153,7 +153,6 @@ sub _new {
             number_of_rows => $args{number_of_rows} // 1000,
             timeout        => $args{timeout} // 60,
             buffer         => [],
-            rows_in_buffer => 0,
         }, $class;
 
 }

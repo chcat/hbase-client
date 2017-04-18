@@ -41,21 +41,14 @@ sub disconnect {
 
 sub exec_service_async {
 
-    my ($self, $region, $request, $service, $method) = @_;
+    my ($self, $region, $call) = @_;
 
-    my $call = HBase::Client::Proto::CoprocessorServiceCall->new( {
-        service_name => $service,
-        method_name  => $method,
-        request      => $request->encode,
-        row          => '',
-    } );
+    my $request = HBase::Client::Proto::CoprocessorServiceRequest->new( {
+            region => $region,
+            call   => $call,
+        } );
 
-    my $cp_request = HBase::Client::Proto::CoprocessorServiceRequest->new( {
-        region => $region,
-        call   => $call,
-    } );
-
-    return $self->_rpc_call_async( EXEC_SERVICE, $cp_request );
+    return $self->_rpc_call_async( EXEC_SERVICE, $request );
 
 }
 

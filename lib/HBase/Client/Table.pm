@@ -91,12 +91,12 @@ sub mutate {
 
 sub exec_service {
 
-    my ($self, $request, $service, $method) = @_;
+    my ($self, $call) = @_;
 
     $self->load->then( sub {
         my ($regions) = @_;
 
-        my @promises = map $_->exec_service_async( $request, $service, $method ), @$regions;
+        my @promises = map $_->exec_service_async( $request, $call ), @$regions;
 
         return collect( @promises );
 
@@ -232,17 +232,18 @@ sub load {
 
                     });
             }
+        ->finally( sub {
+
+                undef $self->{loading}; # release the loading process lock
+
+            })
         ->then( sub {
 
-                undef $self->{loading}; # release the loading process lock
-
                 return $regions;
-            } )
-        ->catch( sub {
+
+            }, sub {
 
                 my ($error) = @_;
-
-                undef $self->{loading}; # release the loading process lock
 
                 $self->handle_error($error);
 
