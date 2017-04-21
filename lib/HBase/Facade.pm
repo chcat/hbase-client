@@ -4,6 +4,7 @@ use v5.14;
 use warnings;
 
 use HBase::Client::Try qw( sync );
+use Promises qw( collect );
 
 sub new {
 
@@ -16,6 +17,21 @@ sub new {
 # $table, $row, {columns => ["$family1", "$family2:$column2"], from => $from, to => $to, max_versions => $mv, existence_only => $eo, timestamped => $ts}
 # returns { "$family1:$column1" => $value1, "$family2:$column2" => $value2,...  }
 sub get_async {
+
+    my ($self, $table, $rows, $params, $options) = @_;
+
+    return $self->_get_single_async( $table, $rows, $params, $options ) if ref($rows) eq "ARRAY";
+
+    return collect( map { $self->_get_single_async( $table, $_, $params, $options  } @$rows )
+        ->then( sub {
+
+                return { map { ($rows->[$_], $@[$_][0] ) } 0..@$rows };
+
+            } );
+
+}
+
+sub _get_single_async {
 
     my ($self, $table, $row, $params, $options) = @_;
 
