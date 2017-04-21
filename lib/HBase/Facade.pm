@@ -22,7 +22,7 @@ sub get_async {
 
     return $self->_get_single_async( $table, $rows, $params, $options ) if ref($rows) eq "ARRAY";
 
-    return collect( map { $self->_get_single_async( $table, $_, $params, $options  } @$rows )
+    return collect( map { $self->_get_single_async( $table, $_, $params, $options ) } @$rows )
         ->then( sub {
 
                 return { map { ($rows->[$_], $@[$_][0] ) } 0..@$rows };
