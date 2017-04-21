@@ -20,7 +20,7 @@ sub get_async {
 
     my ($self, $table, $rows, $params, $options) = @_;
 
-    return $self->_get_single_async( $table, $rows, $params, $options ) if ref($rows) eq "ARRAY";
+    return $self->_get_single_async( $table, $rows, $params, $options ) if ref($rows) eq "SCALAR";
 
     return collect( map { $self->_get_single_async( $table, $_, $params, $options ) } @$rows )
         ->then( sub {
