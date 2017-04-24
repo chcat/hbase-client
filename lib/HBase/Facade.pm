@@ -82,11 +82,11 @@ sub put { sync shift->put_async( @_ ); }
 
 sub scanner {
 
-    my ($self, $table, $scan, $number_of_rows) = @_;
+    my ($self, $table, $params, $options) = @_;
 
     return HBase::Facade::Scanner->_new(
-            scanner         => $self->{client}->scanner( $table, $scan, $number_of_rows ),
-            multi_versions  => ($scan->{max_versions} // 1) > 1,
+            scanner         => $self->{client}->scanner( $table, $params, $options ),
+            multi_versions  => ($params->{max_versions} // 1) > 1 || $params->{timestamped})->{$row},
             facade          => $self,
         );
 
