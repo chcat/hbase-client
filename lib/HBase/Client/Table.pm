@@ -139,17 +139,24 @@ sub region {
 
     my ($self, $row) = @_;
 
-    if ( defined (my $position_in_cache = $self->_region_cache_position_lookup( $row )) ){
+    return $self->load->then( sub {
 
-        return deferred->resolve( $self->{regions}->[$position_in_cache] )->promise;
+            if ( defined (my $position_in_cache = $self->_region_cache_position_lookup( $row )) ){
 
-    } else {
+                return $self->{regions}->[$position_in_cache];
 
-        $self->load; # start 'async' loading process
+            } else {
 
-        return $self->_region( $row );
+                # Table loaded successfully, but there is no region for the row? Either we corrupted
+                # the region cache somehow or the table does not exists...
 
-    }
+                $self->invalidate;
+
+                die "No regions are present for table $self->{name}: probably the table does not exist";
+
+            }
+
+        } );
 
 }
 
@@ -187,7 +194,7 @@ sub invalidate {
 
     my ($self) = @_;
 
-    $self->{regions} = [];
+    undef $self->{loading}; # release the loading process lock
 
     return;
 
@@ -205,7 +212,7 @@ sub load {
             stop_row    => region_name( next_key( $self->name ) ), # "$tablename\x00,,"
         };
 
-    my $scanner = $self->cluster->table( meta_table_name )->scanner( $scan );
+    my $scanner = $self->cluster->table( meta_table_name )->scanner( $scan, { number_of_rows => 1000 } );
 
     my $regions = $self->{regions} = [];
 
@@ -232,11 +239,6 @@ sub load {
 
                     });
             }
-        ->finally( sub {
-
-                undef $self->{loading}; # release the loading process lock
-
-            })
         ->then( sub {
 
                 return $regions;
@@ -245,7 +247,9 @@ sub load {
 
                 my ($error) = @_;
 
-                $self->handle_error($error);
+                $self->invalidate; # release the loading process lock and drop the cache
+
+                die "Loading table $self->{name} failed: $error";
 
             } );
 
