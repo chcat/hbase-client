@@ -11,6 +11,7 @@ use HBase::Client::Utils qw(
         region_name
         meta_table_name
     );
+use HBase::Client::Try qw( try retry done handle );
 
 sub new {
 
