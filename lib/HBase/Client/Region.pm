@@ -18,7 +18,7 @@ sub new {
             name        => $args{name},
             table_name  => $args{table_name},
             server      => $args{server},
-            start       => $args{start}
+            start       => $args{start},
             end         => $args{end},
             is_offline  => $args{is_offline},
             cluster     => $args{cluster},
