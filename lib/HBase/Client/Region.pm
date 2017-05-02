@@ -3,7 +3,11 @@ package HBase::Client::Region;
 use v5.14;
 use warnings;
 
-use HBase::Client::Utils qw( region_specifier );
+use HBase::Client::Utils qw(
+        region_specifier
+        cell_array_to_row_map
+        getter
+    );
 use Scalar::Util qw( weaken );
 
 
@@ -11,13 +15,46 @@ sub new {
     my ($class, %args) = @_;
 
     my $self = bless {
-            %args,
+            name        => $args{name},
+            table_name  => $args{table_name},
+            server      => $args{server},
+            start       => $args{start}
+            end         => $args{end},
+            is_offline  => $args{is_offline},
+            cluster     => $args{cluster},
         }, $class;
 
-    weaken $self->{table};
+    weaken $self->{cluster};
 
     return $self;
 
+}
+
+sub parse {
+    my ($class, $cluster, $result) = @_;
+
+    return undef unless $result;
+
+    my ($name, $description) = %{ cell_array_to_row_map( $result->get_cell_list ) };
+
+    return undef unless $name && $description;
+
+    my $region_info_encoded = $description->{info}{regioninfo}[0]{value} // die 'Can not extract region info from result';
+    my $region_info = HBase::Client::Proto::RegionInfo->decode( substr $region_info_encoded, 4 );
+
+    my $table_namespace = $region_info->get_table_name->get_namespace;
+    my $table_qualifier = $region_info->get_table_name->get_qualifier;
+    my $table_name = $table_namespace eq 'default' ? $table_qualifier : $table_namespace.':'.$table_qualifier;
+
+    return $class->new(
+            name        => $name,
+            table_name  => $table_name,
+            server      => $description->{info}{server}[0]{value},
+            start       => $region_info->get_start_key,
+            end         => $region_info->get_end_key,
+            is_offline  => $region_info->get_offline,
+            cluster     => $cluster,
+        );
 }
 
 sub get_async {
@@ -59,35 +96,11 @@ sub scanner {
 
 }
 
-sub region_before {
-
-    my ($self) = @_;
-
-    return $self->table->region_before( $self );
-
-}
-
-sub region_after {
-
-    my ($self) = @_;
-
-    return $self->table->region_after( $self );
-
-}
-
 GETTERS: {
-
-    sub _getter {
-
-        my ($property) = @_;
-
-        return sub { $_[0]->{$property} };
-
-    }
 
     no strict 'refs';
 
-    *{$_} = _getter( $_ ) for qw( name start end server table );
+    *{$_} = getter( $_ ) for qw( name start end server table_name cluster is_offline );
 
 }
 
@@ -96,7 +109,7 @@ sub _specifier { region_specifier( $_[0]->name ) }
 sub _get_node {
     my ($self) = @_;
 
-    return $self->{table}->cluster->get_node( $self->server );
+    return $self->cluster->get_node( $self->server );
 }
 
 1;

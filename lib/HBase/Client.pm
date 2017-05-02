@@ -36,6 +36,12 @@ sub new {
 
 }
 
+sub prepare {
+    my ($self) = @_;
+
+    return sync $self->_cluster->prepare;
+}
+
 sub get { sync shift->get_async( @_ ); }
 
 sub get_async {

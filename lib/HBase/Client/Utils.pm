@@ -17,7 +17,16 @@ our @EXPORT= qw(
         region_name_new_format
         cell_array_to_row_map
         exception
+        getter
     );
+
+sub getter {
+
+    my ($property) = @_;
+
+    return sub { $_[0]->{$property} };
+
+}
 
 sub next_key {
 
@@ -86,13 +95,13 @@ sub cell_array_to_row_map {
 
     return {} unless @$cells;
 
-    my $map;
+    my %map;
 
     my %to_sort;
 
     for my $cell (@$cells){
 
-        my $values = $map->{ $cell->get_row }->{ $cell->get_family }->{ $cell->get_qualifier } //= [];
+        my $values = $map{ $cell->get_row }{ $cell->get_family }{ $cell->get_qualifier } //= [];
 
         push @$values, $cell;
 
@@ -102,7 +111,11 @@ sub cell_array_to_row_map {
 
     @$_ = sort { $b->get_timestamp <=> $a->get_timestamp } @$_ for values %to_sort;
 
-    return $map;
+    # this part is not documented well, but it seems to be true that a cell array contained in a result
+    # represents at most one row
+    warn 'Mixed rows in a cell array' if keys %map > 1;
+
+    return \%map;
 
 }
 

@@ -38,7 +38,9 @@ sub region {
                         server      => $server,
                         start       => '',
                         end         => '',
-                        table       => $self,
+                        table_name  => $self->name,
+                        cluster     => $self->cluster,
+                        is_offline  => 0,
                     );
 
                 }, sub {
@@ -70,7 +72,16 @@ sub invalidate {
 
 }
 
-sub load { deferred->resolve( undef );}
+sub load {
+    my ($self) = @_;
+
+    return $self->region->then( sub {
+
+            return [$_[0]];
+
+        } );
+
+}
 
 sub region_after { deferred->resolve( undef ); }
 

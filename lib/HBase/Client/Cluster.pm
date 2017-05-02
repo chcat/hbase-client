@@ -5,6 +5,12 @@ use warnings;
 
 use HBase::Client::Table;
 use HBase::Client::MetaTable;
+use HBase::Client::Region;
+use HBase::Client::Utils qw(
+        next_key
+        region_name
+        meta_table_name
+    );
 
 sub new {
 
@@ -52,6 +58,79 @@ sub table {
             cluster     => $self,
             name        => $table_name,
         );
+
+}
+
+sub load_online_regions {
+
+    my ($self, $table) = @_;
+
+    my $scan = defined $table ? {
+            start_row   => region_name( $table ),              # "$tablename,,"
+            stop_row    => region_name( next_key( $table ) ), # "$tablename\x00,,"
+        } : {};
+
+    my $scanner = $self->table( meta_table_name )->scanner( $scan, { number_of_rows => 1000 } );
+
+    my @regions;
+
+    return try {
+
+            $scanner->next->then( sub {
+
+                    if (my $rows = $_[0]){
+
+                        for my $row (@$rows) {
+
+                            my $region = HBase::Client::Region->parse( $self, $row );
+
+                            push @regions, $region unless $region->is_offline;
+
+                        }
+
+                        retry( cause => 'Checking for more regions' );
+
+                    }
+
+                });
+
+        }->then( sub {
+
+            return \@regions;
+
+        } );
+}
+
+sub prepare {
+
+    my ($self) = @_;
+
+    # checks and possibly acquires the preparation lock
+    return $self->{prepared} //= $self->load_online_regions
+        ->then(sub {
+
+                my ($regions) = @_;
+
+                my %tables;
+
+                push @{ $tables{$_->table_name} //= [] }, $_ for @$regions;
+
+                $self->table( $_ )->load( $tables{$_} ) for keys %tables;
+
+            }, sub {
+
+                my ($error) = @_;
+
+                die "Loading regions failed: $error" ;
+
+            });
+        ->finally( sub {
+
+                $self->{node_pool}->disconnect;
+
+                undef $self->{prepared}; # releases the preparation lock
+
+            } );
 
 }
 

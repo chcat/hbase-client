@@ -163,7 +163,7 @@ sub _pick_next_region {
 
                 return undef if $stop_row && ($reversed && $region->start le $stop_row || !$reversed && $region->end gt $stop_row);
 
-                return $reversed ? $region->region_before : $region->region_after;
+                return $reversed ? $self->{table}->region_before( $region ) : $self->{table}->region_after( $region );
 
             } );
 

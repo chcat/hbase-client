@@ -29,7 +29,17 @@ sub shutdown {
 
     $self->{shutdown} = 1;
 
-    $_->disconnect('Shutdown') for values %{$self->{nodes}};
+    $self->disconnect;
+
+    return;
+
+}
+
+sub disconnect {
+
+    my ($self) = @_;
+
+    $_->disconnect('Disconnect requested') for values %{$self->{nodes}};
 
     return;
 
