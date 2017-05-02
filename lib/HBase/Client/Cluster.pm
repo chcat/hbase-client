@@ -107,7 +107,7 @@ sub prepare {
 
     # checks and possibly acquires the preparation lock
     return $self->{prepared} //= $self->load_online_regions
-        ->then(sub {
+        ->then( sub {
 
                 my ($regions) = @_;
 
@@ -123,7 +123,7 @@ sub prepare {
 
                 die "Loading regions failed: $error" ;
 
-            });
+            } )
         ->finally( sub {
 
                 $self->{node_pool}->disconnect;
