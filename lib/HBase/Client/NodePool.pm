@@ -41,6 +41,11 @@ sub disconnect {
 
     $_->disconnect('Disconnect requested') for values %{$self->{nodes}};
 
+    $self->{nodes} = {};
+    $self->{disconnectable_nodes} = {};
+    $self->{connections} = 0;
+    $self->{waiting_queue} = [];
+
     return;
 
 }
