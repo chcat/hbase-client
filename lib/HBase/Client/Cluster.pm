@@ -101,7 +101,7 @@ sub load_regions {
 
                                     }
 
-                                    warn 'Gap between regions: '.$previous_region->name.' ends at '.$previous_region->end.' next is '.$region->name."\n"; if $previous_region->end ne $region->start;
+                                    warn 'Gap between regions: '.$previous_region->name.' ends at '.$previous_region->end.' next is '.$region->name."\n" if $previous_region->end ne $region->start;
 
                                 }
 
