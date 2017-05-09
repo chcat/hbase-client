@@ -62,7 +62,7 @@ sub table {
 
 }
 
-sub load_online_regions {
+sub load_regions {
 
     my ($self, $table) = @_;
 
@@ -85,7 +85,23 @@ sub load_online_regions {
 
                             my $region = HBase::Client::Region->parse( $self, $row );
 
-                            push @regions, $region unless $region->is_offline;
+                            next if $region->is_offline || $region->is_split; # these can't be used for serving requests
+
+                            if (my $previous_region = $regions[-1]){
+
+                                if ($previous_region->table_name eq $region->table_name and $previous_region->start eq $region->start){
+
+                                    warn 'Overlapping open regions: '.$previous_region->name.' '.$region->name."\n";
+
+                                    $regions[-1] = $region; # well... the region having bigger id(=open timestamp, usually) goes last.
+
+                                    next;
+
+                                }
+
+                            }
+
+                            push @regions, $region;
 
                         }
 
@@ -107,7 +123,7 @@ sub prepare {
     my ($self) = @_;
 
     # checks and possibly acquires the preparation lock
-    return $self->{prepared} //= $self->load_online_regions
+    return $self->{prepared} //= $self->load_regions
         ->then( sub {
 
                 my ($regions) = @_;

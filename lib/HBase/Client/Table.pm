@@ -116,7 +116,8 @@ sub handle_error { # TODO
 
     if (exception($error) eq 'org.apache.hadoop.hbase.NotServingRegionException'
         || exception($error) eq 'org.apache.hadoop.hbase.RegionMovedException'
-        || exception($error) eq 'org.apache.hadoop.hbase.regionserver.RegionServerStoppedException'){
+        || exception($error) eq 'org.apache.hadoop.hbase.regionserver.RegionServerStoppedException'
+        || exception($error) eq 'org.apache.hadoop.hbase.exceptions.RegionMovedException'){
 
         $self->invalidate;
 
@@ -207,6 +208,8 @@ sub invalidate {
 
 }
 
+
+
 sub load {
 
     my ($self, $regions) = @_;
@@ -219,7 +222,7 @@ sub load {
 
     }
 
-    return $self->{loaded} //= $self->cluster->load_online_regions( $self->name )
+    return $self->{loaded} //= $self->cluster->load_regions( $self->name )
         ->then( sub {
 
                 my ($regions) = @_;

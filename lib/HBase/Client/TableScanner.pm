@@ -93,7 +93,8 @@ sub next {
 
                     } elsif (exception($error) eq 'org.apache.hadoop.hbase.NotServingRegionException'
                         || exception($error) eq 'org.apache.hadoop.hbase.RegionMovedException'
-                        || exception($error) eq 'org.apache.hadoop.hbase.regionserver.RegionServerStoppedException'){
+                        || exception($error) eq 'org.apache.hadoop.hbase.regionserver.RegionServerStoppedException'
+                        || exception($error) eq 'org.apache.hadoop.hbase.exceptions.RegionMovedException'){
 
 
                         undef $self->{scanner};
