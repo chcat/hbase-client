@@ -53,6 +53,7 @@ sub parse {
             start       => $region_info->get_start_key,
             end         => $region_info->get_end_key,
             is_offline  => $region_info->get_offline,
+            is_split    => $region_info->get_split,
             cluster     => $cluster,
         );
 }
@@ -100,7 +101,7 @@ GETTERS: {
 
     no strict 'refs';
 
-    *{$_} = getter( $_ ) for qw( name start end server table_name cluster is_offline );
+    *{$_} = getter( $_ ) for qw( name start end server table_name cluster is_offline is_split );
 
 }
 
