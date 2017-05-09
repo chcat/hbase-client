@@ -89,13 +89,19 @@ sub load_regions {
 
                             if (my $previous_region = $regions[-1]){
 
-                                if ($previous_region->table_name eq $region->table_name and $previous_region->start eq $region->start){
+                                if ($previous_region->table_name eq $region->table_name){
 
-                                    warn 'Overlapping open regions: '.$previous_region->name.' '.$region->name."\n";
+                                    if ($previous_region->start eq $region->start){
 
-                                    $regions[-1] = $region; # well... the region having bigger id(=open timestamp, usually) goes last.
+                                        warn 'Overlapping regions: '.$previous_region->name.' '.$region->name."\n";
 
-                                    next;
+                                        $regions[-1] = $region; # well... the region having bigger id(=open timestamp, usually) goes last.
+
+                                        next;
+
+                                    }
+
+                                    warn 'Gap between regions: '.$previous_region->name.' ends at '.$previous_region->end.' next is '.$region->name."\n"; if $previous_region->end ne $region->start;
 
                                 }
 
