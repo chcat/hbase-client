@@ -39,19 +39,22 @@ sub parse {
 
     return undef unless $name && $description;
 
-    my $region_info_encoded = $description->{info}{regioninfo}[0]{value} // die 'Can not extract region info from result';
+    my $region_info_encoded = $description->{info}{regioninfo}[0]{value} // return undef;
     my $region_info = HBase::Client::Proto::RegionInfo->decode( substr $region_info_encoded, 4 );
 
+    my $start = $region_info->get_start_key // return undef;
+    my $end = $region_info->get_end_key // return undef;
+
     my $table_namespace = $region_info->get_table_name->get_namespace;
-    my $table_qualifier = $region_info->get_table_name->get_qualifier;
+    my $table_qualifier = $region_info->get_table_name->get_qualifier // return undef;
     my $table_name = $table_namespace eq 'default' ? $table_qualifier : $table_namespace.':'.$table_qualifier;
 
     return $class->new(
             name        => $name,
             table_name  => $table_name,
             server      => $description->{info}{server}[0]{value},
-            start       => $region_info->get_start_key,
-            end         => $region_info->get_end_key,
+            start       => $start,
+            end         => $end,
             is_offline  => $region_info->get_offline,
             is_split    => $region_info->get_split,
             cluster     => $cluster,

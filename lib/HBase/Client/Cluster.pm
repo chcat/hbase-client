@@ -83,31 +83,33 @@ sub load_regions {
 
                         for my $row (@$rows) {
 
-                            my $region = HBase::Client::Region->parse( $self, $row );
+                            if (my $region = HBase::Client::Region->parse( $self, $row )){
 
-                            next if $region->is_offline || $region->is_split; # these can't be used for serving requests
+                                next if $region->is_offline || $region->is_split; # these can't be used for serving requests
 
-                            if (my $previous_region = $regions[-1]){
+                                if (my $previous_region = $regions[-1]){
 
-                                if ($previous_region->table_name eq $region->table_name){
+                                    if ($previous_region->table_name eq $region->table_name){
 
-                                    if ($previous_region->start eq $region->start){
+                                        if ($previous_region->start eq $region->start){
 
-                                        warn 'Overlapping regions: '.$previous_region->name.' '.$region->name."\n";
+                                            warn 'Overlapping regions: '.$previous_region->name.' '.$region->name."\n";
 
-                                        $regions[-1] = $region; # well... the region having bigger id(=open timestamp, usually) goes last.
+                                            $regions[-1] = $region; # well... the region having bigger id(=open timestamp, usually) goes last.
 
-                                        next;
+                                            next;
+
+                                        }
+
+                                        warn 'Gap between regions: '.$previous_region->name.' ends at '.$previous_region->end.' next is '.$region->name."\n" if $previous_region->end ne $region->start;
 
                                     }
 
-                                    warn 'Gap between regions: '.$previous_region->name.' ends at '.$previous_region->end.' next is '.$region->name."\n" if $previous_region->end ne $region->start;
-
                                 }
 
-                            }
+                                push @regions, $region;
 
-                            push @regions, $region;
+                            }
 
                         }
 
