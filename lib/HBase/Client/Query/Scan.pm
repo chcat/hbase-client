@@ -17,7 +17,7 @@ sub to_rpc_call {
             defined $scanner_id ? (scanner_id => $scanner_id) : (),
             defined $number_of_rows ? (number_of_rows => $number_of_rows) : (),
             defined $close_scanner ? (close_scanner => $close_scanner) : (),
-            defined $next_call_seq ? (next_call_seq => $next_call_seq) : (),
+            next_call_seq => $next_call_seq // 0,
         } );
 
     return {
