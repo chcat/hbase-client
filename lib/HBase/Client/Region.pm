@@ -76,7 +76,7 @@ sub get_async {
             get    => $get,
         );
 
-    return $self->query( $query );
+    return $self->_query( $query );
 
 }
 
@@ -90,7 +90,7 @@ sub mutate_async {
             nonce_group => $nonce_group,
         );
 
-    return $self->query( $query );
+    return $self->_query( $query );
 
 }
 
@@ -106,7 +106,7 @@ sub scan_async {
             close_scanner  => $close_scanner,
         );
 
-    return $self->query( $query );
+    return $self->_query( $query );
 
 }
 
@@ -118,7 +118,7 @@ sub exec_service_async {
             call    => $call,
         );
 
-    return $self->query( $query );
+    return $self->_query( $query );
 }
 
 sub scanner {
