@@ -8,6 +8,8 @@ use HBase::Client::Query::Scan;
 use HBase::Client::Query::Get;
 use HBase::Client::Query::Mutate;
 
+use HBase::Client::RegionScanner;
+
 use HBase::Client::Utils qw(
         region_specifier
         cell_array_to_row_map
