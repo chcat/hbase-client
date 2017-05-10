@@ -3,6 +3,11 @@ package HBase::Client::Region;
 use v5.14;
 use warnings;
 
+use HBase::Client::Query::ExecService;
+use HBase::Client::Query::Scan;
+use HBase::Client::Query::Get;
+use HBase::Client::Query::Mutate;
+
 use HBase::Client::Utils qw(
         region_specifier
         cell_array_to_row_map
@@ -62,30 +67,56 @@ sub parse {
 }
 
 sub get_async {
-    my ($self, @args) = @_;
+    my ($self, $get) = @_;
 
-    return $self->_get_node->get_async( $self->_specifier, @args );
+    my $query = HBase::Client::Query::Get->new(
+            region => $self->_specifier,
+            get    => $get,
+        );
+
+    return $self->query( $query );
 
 }
 
 sub mutate_async {
-    my ($self, @args) = @_;
+    my ($self, $mutation, $condition, $nonce_group) = @_;
 
-    return $self->_get_node->mutate_async( $self->_specifier, @args );
+    my $query = HBase::Client::Query::Mutate->new(
+            region      => $self->_specifier,
+            mutation    => $mutation,
+            condition   => $condition,
+            nonce_group => $nonce_group,
+        );
+
+    return $self->query( $query );
 
 }
 
 sub scan_async {
-    my ($self, @args) = @_;
+    my ($self, $region, $scan, $scanner_id, $number_of_rows, $next_call_seq, $close_scanner) = @_;
 
-    return $self->_get_node->scan_async( $self->_specifier, @args );
+    my $query = HBase::Client::Query::Scan->new(
+            region         => $self->_specifier,
+            scan           => $scan,
+            scanner_id     => $scanner_id,
+            number_of_rows => $number_of_rows,
+            next_call_seq  => $next_call_seq,
+            close_scanner  => $close_scanner,
+        );
+
+    return $self->query( $query );
 
 }
 
 sub exec_service_async {
-    my ($self, @args) = @_;
+    my ($self, $region, $call) = @_;
 
-    return $self->_get_node->exec_service_async( $self->_specifier, @args );
+    my $query = HBase::Client::Query::ExecService->new(
+            region => $self->_specifier,
+            call    => $call,
+        );
+
+    return $self->query( $query );
 }
 
 sub scanner {
@@ -110,10 +141,10 @@ GETTERS: {
 
 sub _specifier { region_specifier( $_[0]->name ) }
 
-sub _get_node {
-    my ($self) = @_;
+sub _query {
+    my ($self, $query) = @_;
 
-    return $self->cluster->get_node( $self->server );
+    return $self->cluster->get_node( $self->server )->query( $query );
 }
 
 1;

@@ -150,9 +150,9 @@ sub _write_connection_header {
 
 }
 
-sub call_async {
+sub make_call {
 
-    my ( $self, $method, $param, $options ) = @_;
+    my ( $self, $call, $options ) = @_;
 
     my $deferred = deferred;
 
@@ -163,16 +163,17 @@ sub call_async {
     AnyEvent->now_update; # updates AnyEvent's "current time" - otherwise the timer we gonna set up may fire too early
 
     $self->{calls}->{$call_id} = {
-            deferred => $deferred,
-            method   => $method,
+            deferred      => $deferred,
+            response_type => $call->{response_type},
             timeout_watcher  => $timeout ? AnyEvent->timer( after => $timeout, cb => sub { $self->_timeout_call( $call_id ) } ) : undef,
         };
 
+    my $param = $call->{param};
+
     my @messages = ( HBase::Client::Proto::RequestHeader->new( {
             call_id         => $call_id,
-            method_name     => $method->{name},
+            method_name     => $call->{method},
             request_param   => $param ? 1 : 0,
-
         } ) );
 
     push @messages, $param if $param;
@@ -233,7 +234,7 @@ sub _on_read {
 
             } else {
 
-                $deferred->resolve( $call->{method}->{response_type}->decode( $response_enc ) );
+                $deferred->resolve( $call->{response_type}->decode( $response_enc ) );
 
             }
 
