@@ -95,7 +95,7 @@ sub mutate_async {
 }
 
 sub scan_async {
-    my ($self, $region, $scan, $scanner_id, $number_of_rows, $next_call_seq, $close_scanner) = @_;
+    my ($self, $scan, $scanner_id, $number_of_rows, $next_call_seq, $close_scanner) = @_;
 
     my $query = HBase::Client::Query::Scan->new(
             region         => $self->_specifier,
