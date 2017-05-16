@@ -111,7 +111,7 @@ sub scan_async {
 }
 
 sub exec_service_async {
-    my ($self, $region, $call) = @_;
+    my ($self, $call) = @_;
 
     my $query = HBase::Client::Query::ExecService->new(
             region => $self->_specifier,
