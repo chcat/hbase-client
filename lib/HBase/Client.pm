@@ -10,6 +10,8 @@ use HBase::Client::Cluster;
 use HBase::Client::NodePool;
 use HBase::Client::ZookeeperMetaHolderLocator;
 
+use HBase::Client::Context qw( setup_context );
+
 sub new {
 
     my ($class, %args) = @_;
@@ -50,6 +52,8 @@ sub get_async {
 
     my $timeout = $options->{timeout} // $self->{timeout};
 
+    setup_context( $options->{stats} );
+
     return timeout $timeout, sub { $self->_cluster->table( $table )->get( $get ) };
 
 }
@@ -62,6 +66,8 @@ sub mutate_async {
 
     my $timeout = $options->{timeout} // $self->{timeout};
 
+    setup_context( $options->{stats} );
+
     return timeout $timeout, sub { $self->_cluster->table( $table )->mutate( $mutation, $condition, $nonce_group ) };
 
 }
@@ -73,6 +79,8 @@ sub exec_service_async {
     my ($self, $table, $call, $options) = @_;
 
     my $timeout = $options->{timeout} // $self->{timeout};
+
+    setup_context( $options->{stats} );
 
     return timeout $timeout, sub { $self->_cluster->table( $table )->exec_service( $call ) };
 }
@@ -118,6 +126,8 @@ sub next_async {
     my $buffer = $self->{buffer};
 
     my $number_of_rows = $options->{number_of_rows} // $self->{number_of_rows};
+
+    setup_context( $options->{stats} );
 
     return try {
 

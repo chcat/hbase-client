@@ -15,7 +15,7 @@ our @EXPORT_OK= qw(
 
 my $current_context;
 
-sub context { return $current_context }
+sub context { return $current_context // {}; }
 
 sub setup_context {
 
