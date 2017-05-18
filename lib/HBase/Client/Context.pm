@@ -4,7 +4,7 @@ use v5.14;
 use warnings;
 
 use Promises;
-use Scope::Upper qw( localize );
+use Scope::Upper qw( localize UP );
 
 use Exporter 'import';
 
@@ -13,39 +13,45 @@ our @EXPORT_OK= qw(
         setup_context
     );
 
-my $current_context;
+our $context;
 
-sub context { return $current_context // {}; }
+our $promise_chainings_wrapped;
+
+sub context { return $context // {}; }
 
 sub setup_context {
 
-    my ($class, $context) = @_;
+    my ($new_context) = @_;
 
-    return if $current_context == $context;
+    return if defined $context && defined $new_context && $context == $new_context || !defined $context && !defined $new_context;
 
-    localize $current_context, $context;
+    localize *HBase::Client::Context::context, \$new_context, UP;
 
-    localize *Promises::then, $class->_wrap_chaining( \&Promises::then, 2 );
+    return if $promise_chainings_wrapped;
 
-    localize *Promises::done, $class->_wrap_chaining( \&Promises::done, 2 );
+    localize *Promises::Promise::then, _wrap_promise_chaining( \&Promises::Promise::then, 2 ), UP;
 
-    localize *Promises::catch, $class->_wrap_chaining( \&Promises::catch, 1 );
+    localize *Promises::Promise::done, _wrap_promise_chaining( \&Promises::Promise::done, 2 ), UP;
 
-    localize *Promises::finally, $class->_wrap_chaining( \&Promises::finally, 1 );
+    localize *Promises::Promise::catch, _wrap_promise_chaining( \&Promises::Promise::catch, 1 ), UP;
+
+    localize *Promises::Promise::finally, _wrap_promise_chaining( \&Promises::Promise::finally, 1 ), UP;
+
+    localize *HBase::Client::Context::promise_chainings_wrapped, \1, UP;
+
+    return;
 
 }
 
-sub _wrap_chaining {
+sub _wrap_promise_chaining {
 
-    my ($class, $original_sub, $args_amount) = @_;
-
-    my $context = $current_context; # make it closure
+    my ($original_sub, $args_amount) = @_;
 
     return sub {
 
-            my $self_alias_ref = \$_[0];
+            my $context = context; # capture the context at the moment of chaining a callback to a promise into the closure of the callback wrapper
 
-            shift;
+            my $alias_ref = \shift;
 
             my @callbacks;
 
@@ -55,15 +61,15 @@ sub _wrap_chaining {
 
                 push @callbacks, $callback ? sub {
 
-                        $class->setup( $context );
+                        setup_context( $context );
 
-                        goto $callback;
+                        $callback->(@_); # goto would destroy the local context we set up
 
                     } : undef;
 
             }
 
-            $original_sub->($$self_alias_ref, @callbacks, @_);
+            $original_sub->($$alias_ref, @callbacks, @_);
 
         };
 
