@@ -4,42 +4,53 @@ use v5.14;
 use warnings;
 
 use Promises;
-use Scope::Upper qw( localize UP );
+use Scope::Upper qw( localize SUB UP );
 
 use Exporter 'import';
 
 our @EXPORT_OK= qw(
         context
-        setup_context
+        set_context
     );
 
 our $context;
 
 our $promise_chainings_wrapped;
 
-sub context { return $context // {}; }
+sub context {
 
-sub setup_context {
+    return $context;
+
+}
+
+sub set_context {
 
     my ($new_context) = @_;
 
-    return if defined $context && defined $new_context && $context == $new_context || !defined $context && !defined $new_context;
+    my $old_context = $context;
 
-    localize *HBase::Client::Context::context, \$new_context, UP;
+    if (defined $context != defined $new_context || defined $context && $context != $new_context){
 
-    return if $promise_chainings_wrapped;
+        localize *HBase::Client::Context::context, \$new_context, UP SUB; # UP SUB refers here to the caller of ___SUB___
 
-    localize *Promises::Promise::then, _wrap_promise_chaining( \&Promises::Promise::then, 2 ), UP;
+        unless ($promise_chainings_wrapped){
 
-    localize *Promises::Promise::done, _wrap_promise_chaining( \&Promises::Promise::done, 2 ), UP;
+            localize *Promises::Promise::then, _wrap_promise_chaining( \&Promises::Promise::then, 2 ), UP SUB;
 
-    localize *Promises::Promise::catch, _wrap_promise_chaining( \&Promises::Promise::catch, 1 ), UP;
+            localize *Promises::Promise::done, _wrap_promise_chaining( \&Promises::Promise::done, 2 ), UP SUB;
 
-    localize *Promises::Promise::finally, _wrap_promise_chaining( \&Promises::Promise::finally, 1 ), UP;
+            localize *Promises::Promise::catch, _wrap_promise_chaining( \&Promises::Promise::catch, 1 ), UP UB;
 
-    localize *HBase::Client::Context::promise_chainings_wrapped, \1, UP;
+            localize *Promises::Promise::finally, _wrap_promise_chaining( \&Promises::Promise::finally, 1 ), UP SUB;
 
-    return;
+            localize *HBase::Client::Context::promise_chainings_wrapped, \1, UP SUB;
+
+
+        }
+
+    }
+
+    return $old_context;
 
 }
 
@@ -49,7 +60,7 @@ sub _wrap_promise_chaining {
 
     return sub {
 
-            my $context = context; # capture the context at the moment of chaining a callback to a promise into the closure of the callback wrapper
+            my $context = context; # at the moment of chaining a callback to a promise, captures the context into the closure of the callback wrapper defined below
 
             my $alias_ref = \shift;
 
@@ -59,9 +70,11 @@ sub _wrap_promise_chaining {
 
                 my $callback = shift;
 
+                # wraps a promise completion callback by the sub recovering the context from its closure
+
                 push @callbacks, $callback ? sub {
 
-                        setup_context( $context );
+                        set_context( $context );
 
                         $callback->(@_); # goto would destroy the local context we set up
 
