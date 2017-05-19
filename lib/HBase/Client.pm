@@ -41,7 +41,9 @@ sub new {
 }
 
 sub prepare {
-    my ($self) = @_;
+    my ($self, $options) = @_;
+
+    set_context( HBase::Client::RequestExecutionContext->new( $options->{stats} ) );
 
     return sync $self->_cluster->prepare;
 }

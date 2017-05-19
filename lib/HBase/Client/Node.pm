@@ -13,6 +13,7 @@ sub new {
     my $self = bless {
             rpc                     => $args{rpc},
             pool                    => $args{pool},
+            server                  => $args{server},
             pending_requests_count  => 0,
             connected               => undef,
         }, $class;
@@ -69,14 +70,14 @@ sub _connect {
     return $self->_reserve_connection
         ->then( sub {
 
-                context->log( "The node $self->{name} is going to connect" );
+                context->log( "The node $self->{server} is going to connect" );
 
                 $self->_rpc->connect;
 
             } )
         ->then( sub {
 
-                context->log( "The node $self->{name} is connected" );
+                context->log( "The node $self->{server} is connected" );
 
                 my ($connected_rpc) = @_;
 
@@ -84,7 +85,7 @@ sub _connect {
 
                         my ($reason) = @_;
 
-                        context->log( "The node $self->{name} is disconnected cause $reason" );
+                        context->log( "The node $self->{server} is disconnected cause $reason" );
 
                         undef $self->{connected};
 
