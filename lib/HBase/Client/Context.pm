@@ -39,7 +39,7 @@ sub set_context {
 
             localize *Promises::Promise::done, _wrap_promise_chaining( \&Promises::Promise::done, 2 ), UP SUB;
 
-            localize *Promises::Promise::catch, _wrap_promise_chaining( \&Promises::Promise::catch, 1 ), UP UB;
+            localize *Promises::Promise::catch, _wrap_promise_chaining( \&Promises::Promise::catch, 1 ), UP SUB;
 
             localize *Promises::Promise::finally, _wrap_promise_chaining( \&Promises::Promise::finally, 1 ), UP SUB;
 
