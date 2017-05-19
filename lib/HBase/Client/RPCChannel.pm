@@ -163,8 +163,9 @@ sub make_call {
     AnyEvent->now_update; # updates AnyEvent's "current time" - otherwise the timer we gonna set up may fire too early
 
     $self->{calls}->{$call_id} = {
-            deferred      => $deferred,
-            response_type => $call->{response_type},
+            deferred         => $deferred,
+            response_type    => $call->{response_type},
+            stats            => $options->{stats},
             timeout_watcher  => $timeout ? AnyEvent->timer( after => $timeout, cb => sub { $self->_timeout_call( $call_id ) } ) : undef,
         };
 
@@ -178,7 +179,7 @@ sub make_call {
 
     push @messages, $param if $param;
 
-    $self->_write_as_frame( @messages );
+    $self->_write_as_frame( $options->{stats}, @messages );
 
     return $deferred->promise;
 
@@ -200,13 +201,15 @@ sub _timeout_call {
 
 sub _write_as_frame {
 
-    my ($self, @messages) = @_;
+    my ($self, $stats, @messages) = @_;
 
     my $frame_ref = join_delimited( [ map { defined $_ ? $_->encode : () } @messages ] );
 
-    substr($$frame_ref, 0, 0) = pack('N', length $$frame_ref);
+    my $length = length $$frame_ref;
 
-    $self->{connection}->write( undef, $frame_ref );
+    substr($$frame_ref, 0, 0) = pack('N', $length);
+
+    $self->{connection}->write( sub { $stats->{written} = $length + 4; }, $frame_ref );
 
 }
 
@@ -225,6 +228,8 @@ sub _on_read {
         if ( $header->has_call_id and my $call = delete $self->{calls}->{ $header->get_call_id } ){
 
             undef $call->{timeout_watcher};
+
+            $call->{stats}->{read} = length $$frame_ref;
 
             my $deferred = $call->{deferred};
 

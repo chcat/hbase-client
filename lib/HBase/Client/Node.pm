@@ -46,6 +46,8 @@ sub query {
 
             return $connected_rpc->make_call( $query->to_rpc_call, $options )->finally( sub {
 
+                    context->register_io_stats( $options->{stats} );
+
                     # allows the pool to disconnect the node if there are no pending calls
                     $self->_pool->unblock_disconnecting( $self ) if --$self->{pending_requests_count} == 0; # TODO: handle scans properly
 

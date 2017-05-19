@@ -28,32 +28,48 @@ sub log {
 
 }
 
-sub region_query_success {
+sub region_query_start {
 
-    shift->region_query(1, @_);
-
-}
-
-sub region_query_failure {
-
-    shift->region_query(0, @_);
-
-}
-
-sub region_query {
-
-    my ($self, $result, $region, $query) = @_;
+    my ($self, $region, $query) = @_;
 
     push @{$self->{queries}}, {
             region => $region->name,
             table  => $region->table_name,
             type   => $query->type,
-            result => $result,
+            time   => { start => time },
         };
 
-    return;
+}
 
+sub region_query_success { shift->_region_query_end(1); }
+
+sub region_query_failure { shift->_region_query_end(0); }
+
+sub _region_query_end {
+
+    my ($self, $result);
+
+    my $query = $self->{queries}[-1];
+
+    $query->{result} = $result;
+    $query->{time}{end} = time;
 
 }
+
+sub register_io_stats {
+
+    my ($self, $stats) = @_;
+
+    if (my $query = $self->{queries}[-1]){
+
+        $query->{io} = { %$stats };
+
+    }
+
+}
+
+
+
+
 
 1;
