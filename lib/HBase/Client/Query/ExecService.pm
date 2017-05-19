@@ -5,6 +5,12 @@ use warnings;
 
 use parent 'HBase::Client::Query::Abstract';
 
+sub new {
+
+    return shift->SUPER::new( @_, type => 'exec_service' );
+
+}
+
 sub to_rpc_call {
 
     my ($self) = @_;

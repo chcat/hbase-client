@@ -165,7 +165,7 @@ sub _hustle_waiting_queue {
 
         my ($node) = values %$disconnectable_nodes;
 
-        $node->disconnect;
+        $node->disconnect( 'Concurrent connections limit is reached' );
 
     }
 

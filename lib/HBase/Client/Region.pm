@@ -15,6 +15,7 @@ use HBase::Client::Utils qw(
         cell_array_to_row_map
         getter
     );
+use HBase::Client::Context qw( context );
 use Scalar::Util qw( weaken );
 
 
@@ -146,7 +147,20 @@ sub _specifier { region_specifier( $_[0]->name ) }
 sub _query {
     my ($self, $query) = @_;
 
-    return $self->cluster->get_node( $self->server )->query( $query );
+    return $self->cluster->get_node( $self->server )->query( $query )
+        ->then( sub {
+
+                context->region_query_success( $self, $query );
+
+                return @_;
+
+            }, sub {
+
+                context->region_query_failure( $self, $query );
+
+                return @_;
+
+            } );
 }
 
 1;

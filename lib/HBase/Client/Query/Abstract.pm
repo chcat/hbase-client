@@ -13,5 +13,12 @@ sub new {
 
 }
 
+sub type {
+
+    my ($self) = @_;
+
+    return $self->{type};
+
+}
 
 1;
