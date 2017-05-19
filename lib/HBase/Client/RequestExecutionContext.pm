@@ -52,7 +52,7 @@ sub _region_query_end {
     my $query = $self->{queries}[-1];
 
     $query->{result} = $result;
-    $query->{time} = time - $query->{time};
+    $query->{time} = int (time - $query->{time})*1000;
 
 }
 
