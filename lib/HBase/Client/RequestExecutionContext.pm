@@ -36,7 +36,7 @@ sub region_query_start {
             region => $region->name,
             table  => $region->table_name,
             type   => $query->type,
-            time   => { start => time },
+            time   => time,
         };
 
 }
@@ -47,12 +47,12 @@ sub region_query_failure { shift->_region_query_end(0); }
 
 sub _region_query_end {
 
-    my ($self, $result);
+    my ($self, $result) = @_;
 
     my $query = $self->{queries}[-1];
 
     $query->{result} = $result;
-    $query->{time}{end} = time;
+    $query->{time} = time - $query->{time};
 
 }
 
