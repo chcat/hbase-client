@@ -12,6 +12,7 @@ use HBase::Client::Utils qw(
         meta_table_name
     );
 use HBase::Client::Try qw( try retry done handle );
+use HBase::Client::Context qw( context );
 
 sub new {
 
@@ -71,6 +72,8 @@ sub load_regions {
             stop_row    => region_name( next_key( $table ) ), # "$tablename\x00,,"
         } : {};
 
+    context->log( $table ? "Loading regions for $table" : "Loading all regions" );
+
     my $scanner = $self->table( meta_table_name )->scanner( $scan, { number_of_rows => 1000 } );
 
     my @regions;
@@ -120,6 +123,8 @@ sub load_regions {
                 });
 
         }->then( sub {
+
+            context->log( $table ? "Loading regions for $table done" : "Loading all regions done" );
 
             return \@regions;
 

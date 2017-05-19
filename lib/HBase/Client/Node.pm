@@ -4,6 +4,7 @@ use v5.14;
 use warnings;
 
 use Scalar::Util qw( weaken );
+use HBase::Client::Context qw( context );
 
 sub new {
 
@@ -68,16 +69,22 @@ sub _connect {
     return $self->_reserve_connection
         ->then( sub {
 
+                context->log( "The node $self->{name} is going to connect" );
+
                 $self->_rpc->connect;
 
             } )
         ->then( sub {
+
+                context->log( "The node $self->{name} is connected" );
 
                 my ($connected_rpc) = @_;
 
                 $connected_rpc->disconnected->then( sub {
 
                         my ($reason) = @_;
+
+                        context->log( "The node $self->{name} is disconnected cause $reason" );
 
                         undef $self->{connected};
 
