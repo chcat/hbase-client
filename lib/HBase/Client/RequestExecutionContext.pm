@@ -60,7 +60,7 @@ sub register_io_stats {
 
     my ($self, $stats) = @_;
 
-    if ($stats and (my $query = $self->{queries}[-1]){
+    if ($stats and (my $query = $self->{queries}[-1])){
 
         $query->{io} = { %$stats };
 
