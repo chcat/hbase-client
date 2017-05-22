@@ -74,14 +74,14 @@ sub _connect {
     return $self->_reserve_connection
         ->then( sub {
 
-                context->log( "The node $self->{server} is going to connect" );
+                context->log( "Connecting to $self->{server} ..." );
 
                 $self->_rpc->connect;
 
             } )
         ->then( sub {
 
-                context->log( "The node $self->{server} is connected" );
+                context->log( "Connected to $self->{server}" );
 
                 my ($connected_rpc) = @_;
 
@@ -89,7 +89,7 @@ sub _connect {
 
                         my ($reason) = @_;
 
-                        context->log( "The node $self->{server} is disconnected cause $reason" );
+                        context->log( "Disconnected from $self->{server} cause: $reason" );
 
                         undef $self->{connected};
 

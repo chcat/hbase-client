@@ -221,6 +221,8 @@ sub _on_read {
 
     while (my $frame_ref = $self->_try_read_frame){
 
+        my $frame_length = length $$frame_ref;
+
         my ($header_enc, $response_enc, $rest_enc) = @{split_delimited( $frame_ref )};
 
         my $header = HBase::Client::Proto::ResponseHeader->decode( $header_enc );
@@ -229,7 +231,7 @@ sub _on_read {
 
             undef $call->{timeout_watcher};
 
-            $call->{stats}->{read} = length $$frame_ref;
+            $call->{stats}->{read} = $frame_length;
 
             my $deferred = $call->{deferred};
 
