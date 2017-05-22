@@ -160,7 +160,7 @@ sub _query {
 
                 context->region_query_failure;
 
-                return @_;
+                die @_;
 
             } );
 }

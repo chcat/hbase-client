@@ -122,6 +122,7 @@ use warnings;
 
 use HBase::Client::Try qw( sync timeout try handle retry done);
 use Promises qw( deferred );
+use HBase::Client::Context qw( set_context );
 
 sub next_async {
 

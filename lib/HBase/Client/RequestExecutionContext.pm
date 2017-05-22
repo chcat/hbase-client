@@ -52,7 +52,7 @@ sub _region_query_end {
     my $query = $self->{queries}[-1];
 
     $query->{result} = $result;
-    $query->{time} = int (time - $query->{time})*1000;
+    $query->{time} = int ((time - $query->{time})*1000);
 
 }
 
@@ -60,7 +60,7 @@ sub register_io_stats {
 
     my ($self, $stats) = @_;
 
-    if (my $query = $self->{queries}[-1]){
+    if ($stats and (my $query = $self->{queries}[-1]){
 
         $query->{io} = { %$stats };
 

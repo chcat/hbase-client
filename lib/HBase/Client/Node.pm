@@ -44,6 +44,8 @@ sub query {
 
             my ($connected_rpc) = @_;
 
+            $options->{stats} //= {};
+
             return $connected_rpc->make_call( $query->to_rpc_call, $options )->finally( sub {
 
                     context->register_io_stats( $options->{stats} );
