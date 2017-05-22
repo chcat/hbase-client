@@ -32,6 +32,23 @@ sub next {
                 $self->{next_call_seq} = $next_call_seq + 1;
                 $self->{scanner_id} = $response->get_scanner_id unless defined $scanner_id;
 
+                # Under certain conditions, region's files could contain information about rows
+                # that do no belong to its key space: for example, right after split. This also
+                # could happen as a result of the cluster being in an inconsistent state.
+
+                # So, by default, we filter out the rows by key space
+
+                unless ($options->{dont_filter_by_region_key_space}){
+
+                    my @filtered_results = map {
+                            my $row = $_->get_cell(0)->get_row;
+                            $row ge $region->start && ( $row lt $region->end || $region->end eq '') ? $_ : ();
+                        } @{$response->get_results_list // []};
+
+                    $response->set_results_list( \@filtered_results );
+
+                }
+
                 return $response;
 
             } );
