@@ -334,7 +334,7 @@ sub load {
 
     return $self->{loaded} if $self->{loaded} && !$force_reload;
 
-    context->log( "Loading table $self->{name}..." . $force_reload ? " reloading" : "" );
+    context->log( "Loading table $self->{name}..." . ($force_reload ? " reloading" : "") );
 
     $self->{invalidating} = 1; # blocks invalidation on request; unblocking must be done on the same spin of the event loop as releasing the loading lock
 
