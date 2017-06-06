@@ -114,7 +114,7 @@ sub exec_service {
 
             for my $region (@$regions){
 
-                unless $results{$region->name} {
+                unless ( $results{ $region->name } ) {
 
                     push @promises, $region->exec_service_async( $call )
                         ->then( sub {
