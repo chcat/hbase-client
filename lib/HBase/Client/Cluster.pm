@@ -79,7 +79,7 @@ sub load_regions {
 
             $scan = {
                     start_row   => region_name( $table, $region->start ),                             # "$tablename,$start_key,"
-                    stop_row    => $end eq '' ? next_key( $table ) ) : region_name( $table, $end ) ), # stop at "$tablename\x00,," if given the last region,
+                    stop_row    => region_name( $end eq '' ? next_key( $table ) : ( $table, $end ) ), # stop at "$tablename\x00,," if given the last region,
                                                                                                       # otherwise stop at "$tablename,$end_key,"
                 };
         } else {
