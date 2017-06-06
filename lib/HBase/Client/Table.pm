@@ -400,15 +400,13 @@ sub _region_cache_replace {
 
     my ($self, $region, $replacement ) = @_;
 
-    my position = $self->_region_cache_position_lookup( $region->start );
+    if ( defined (my $position = $self->_region_cache_position_lookup( $region->start )) ){
 
-    if ( defined (my position = $self->_region_cache_position_lookup( $region->start )) ){
-
-        my $candidate = $self->{regions}->[$position_in_cache];
+        my $candidate = $self->{regions}->[$position];
 
         if ($candidate->name eq $region->name){
 
-            splice @{$self->{regions}}, $position_in_cache, 1, @$replacement;
+            splice @{$self->{regions}}, $position, 1, @$replacement;
 
             return;
         }
