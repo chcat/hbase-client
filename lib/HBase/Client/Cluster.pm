@@ -119,7 +119,7 @@ sub load_regions {
                                     if ($previous_region->table_name eq $region->table_name){
 
                                         my $end = $previous_region->end;
-                                        my $start = $region->start
+                                        my $start = $region->start;
 
                                         warn sprintf( "Bad region sequence: %s ends at %s while the next is %s \n", $previous_region->name, $end, $region->name )
                                             unless $end eq $start;
