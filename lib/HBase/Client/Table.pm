@@ -182,7 +182,7 @@ sub handle_region_error { # TODO
 
     } else {
 
-        warn sprintf( "Error querifying a region %s : %s \n", $region->name, exception($error) eq 'unknown' ? $error : exception($error) )
+        warn sprintf( "Error querifying a region %s : %s \n", $region->name, exception($error) eq 'unknown' ? $error : exception($error) );
 
         # the following is desperately irrational:
 
