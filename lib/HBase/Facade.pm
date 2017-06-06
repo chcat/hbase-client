@@ -14,13 +14,17 @@ sub new {
 
 }
 
-sub prepare {
+sub prepare { sync shift->prepare_async( @_ ); }
 
-    my ($self) = @_;
+sub prepare_async {
 
-    return $self->{client}->prepare;
+    my ($self, $options) = @_;
+
+    return $self->{client}->prepare_async( $options );
 
 }
+
+sub get { sync shift->get_async( @_ ); }
 
 # $table, $row, {columns => ["$family1", "$family2:$column2"], from => $from, to => $to, max_versions => $mv, existence_only => $eo, timestamped => $ts}
 # returns { "$family1:$column1" => $value1, "$family2:$column2" => $value2,...  }
@@ -68,7 +72,7 @@ sub _get_single_async {
 
 }
 
-sub get { sync shift->get_async( @_ ); }
+sub put { sync shift->put_async( @_ ); }
 
 # $table, $row => { "$family1:$column1" => $value1, "$family2:$column2" => $value2,...  }, { timestamp => $ts, nonce => $n  }
 sub put_async {
@@ -85,8 +89,6 @@ sub put_async {
 
     return $self->{client}->mutate_async($table, $mutation, undef, undef, $options);
 }
-
-sub put { sync shift->put_async( @_ ); }
 
 sub scanner {
 
@@ -208,6 +210,8 @@ use warnings;
 
 use HBase::Client::Try qw( sync );
 
+sub next { sync shift->next_async( @_ ); }
+
 sub next_async {
 
     my ($self, $options) = @_;
@@ -228,8 +232,6 @@ sub next_async {
             } );
 
 }
-
-sub next { sync shift->next_async( @_ ); }
 
 sub _new {
 

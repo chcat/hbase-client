@@ -40,12 +40,16 @@ sub new {
 
 }
 
-sub prepare {
+sub prepare { sync shift->prepare_async( @_ ); }
+
+sub prepare_async {
+
     my ($self, $options) = @_;
 
     set_context( HBase::Client::RequestExecutionContext->new( $options->{stats} ) );
 
-    return sync $self->_cluster->prepare;
+    return $self->_cluster->prepare;
+
 }
 
 sub get { sync shift->get_async( @_ ); }

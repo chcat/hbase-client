@@ -83,6 +83,8 @@ sub load {
 
 }
 
+sub inflate { }
+
 sub region_after { deferred->resolve( undef ); }
 
 sub region_before { deferred->resolve( undef ); }

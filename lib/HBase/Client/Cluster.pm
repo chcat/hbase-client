@@ -65,14 +65,38 @@ sub table {
 
 sub load_regions {
 
-    my ($self, $table) = @_;
+    my ($self, $table, $region) = @_;
 
-    my $scan = defined $table ? {
-            start_row   => region_name( $table ),              # "$tablename,,"
-            stop_row    => region_name( next_key( $table ) ), # "$tablename\x00,,"
-        } : {};
+    my $scan = {}; # scan all meta by default
 
-    context->log( $table ? "Loading regions for $table" : "Loading all regions" );
+    if (defined $table){
+
+        if ($region){
+
+            context->log( "Loading regions for $table to replace ".$region->name );
+
+            my $end = $region->end;
+
+            $scan = {
+                    start_row   => region_name( $table, $region->start ),                             # "$tablename,$start_key,"
+                    stop_row    => $end eq '' ? next_key( $table ) ) : region_name( $table, $end ) ), # stop at "$tablename\x00,," if given the last region,
+                                                                                                      # otherwise stop at "$tablename,$end_key,"
+                };
+        } else {
+
+            context->log( "Loading regions for $table" );
+
+            $scan = {
+                start_row   => region_name( $table ),             # "$tablename,,"
+                stop_row    => region_name( next_key( $table ) ), # "$tablename\x00,,"
+            };
+        }
+
+    } else {
+
+        context->log( "Loading all regions" );
+
+    }
 
     my $scanner = $self->table( meta_table_name )->scanner( $scan, { number_of_rows => 1000 } );
 
@@ -94,17 +118,21 @@ sub load_regions {
 
                                     if ($previous_region->table_name eq $region->table_name){
 
-                                        if ($previous_region->start eq $region->start){
+                                        my $end = $previous_region->end;
+                                        my $start = $region->start
 
-                                            warn 'Overlapping regions: '.$previous_region->name.' '.$region->name."\n";
+                                        warn sprintf( "Bad region sequence: %s ends at %s while the next is %s \n", $previous_region->name, $end, $region->name )
+                                            unless $end eq $start;
 
-                                            $regions[-1] = $region; # well... the region having bigger id(=open timestamp, usually) goes last.
+                                        if ($previous_region->start eq $start){
+                                            # This type of inconsistency most likely caused by not closing a region after split.
+                                            # We can compensate it taking into account that the region id usually is timestamp of its opening,
+                                            # so we just replace the older one.
+                                            $regions[-1] = $region;
 
                                             next;
 
                                         }
-
-                                        warn 'Gap between regions: '.$previous_region->name.' ends at '.$previous_region->end.' next is '.$region->name."\n" if $previous_region->end ne $region->start;
 
                                     }
 
@@ -124,7 +152,19 @@ sub load_regions {
 
         }->then( sub {
 
-            context->log( $table ? "Loading regions for $table done" : "Loading all regions done" );
+            if (@regions && $region){
+
+                my $start = $regions[0]->start;
+                my $end = $regions[-1]->end;
+
+                context->log( "Loading regions failed" );
+
+                die sprintf( "Broken regions sequence: %s ends at %s was replaced by a sequence covering $start ... $end \n", $region->name, $region->end, $start, $end)
+                    unless $start eq $region->start && $end eq $region->end;
+
+            }
+
+            context->log( "Loading regions successful" );
 
             return \@regions;
 
@@ -145,7 +185,7 @@ sub prepare {
 
                 push @{ $tables{$_->table_name} //= [] }, $_ for @$regions;
 
-                $self->table( $_ )->load( $tables{$_} ) for keys %tables;
+                $self->table( $_ )->inflate( $tables{$_} ) for keys %tables;
 
             }, sub {
 

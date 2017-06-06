@@ -115,6 +115,8 @@ sub next {
 
                     }
 
+                    die $error;
+
                 } );
 
 
