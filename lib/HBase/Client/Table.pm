@@ -152,7 +152,7 @@ sub exec_service {
 
                     die sprintf( "Coprocessor service error: %s \n", exception($critial_error) eq 'unknown' ? $critial_error : exception($critial_error) ) if $critial_error;
 
-                    retry( count => 6, cause => 'Failed Coprocessor calls') if $failed;
+                    retry( count => 6, cause => 'Failed Coprocessor calls') if $retryable_error;
 
                     return [ @results{ map {$_->name} @$regions } ];
 
