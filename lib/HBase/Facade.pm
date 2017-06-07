@@ -79,14 +79,14 @@ sub delete_async {
 
     my ($self, $table, $rows, $params, $options) = @_;
 
-    return collect( map { $self->_get_single_async( $table, $_, $params, $options ) } @$rows )
+    return collect( map { $self->_delete_single_async( $table, $_, $params, $options ) } @$rows )
         ->then( sub {
 
                 return [ map { $_->[0] } @_ ];
 
             } ) if is_arrayref( $rows );
 
-    return $self->_get_single_async( $table, $rows, $params, $options );
+    return $self->_delete_single_async( $table, $rows, $params, $options );
 
 }
 
@@ -261,7 +261,7 @@ sub next_async {
 
                 my ($results) = @_;
 
-                return $results ? [ map { $self->_transform_row( $_->get_cell_list, $self->{multi_versions}, $self->{timestamped}) } @$results ] : undef;
+                return $results ? [ map { $self->{facade}->_transform_row( $_->get_cell_list, $self->{multi_versions}, $self->{timestamped}) } @$results ] : undef;
 
             } );
 
