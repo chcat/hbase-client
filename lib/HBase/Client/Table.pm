@@ -88,7 +88,7 @@ sub mutate {
 
                     my ($error) = @_;
 
-                    return $self->handle_region_error( $error );
+                    return $self->handle_region_error( $region, $error );
 
                 } );
     };

@@ -5,6 +5,7 @@ use warnings;
 
 use HBase::Client::Try qw( sync );
 use Promises qw( collect );
+use Ref::Util qw( is_hashref is_arrayref );
 
 sub new {
 
@@ -32,14 +33,14 @@ sub get_async {
 
     my ($self, $table, $rows, $params, $options) = @_;
 
-    return $self->_get_single_async( $table, $rows, $params, $options ) if ref($rows) eq '';
-
     return collect( map { $self->_get_single_async( $table, $_, $params, $options ) } @$rows )
         ->then( sub {
 
                 return [ map { $_->[0] } @_ ];
 
-            } );
+            } ) if is_arrayref( $rows );
+
+    return $self->_get_single_async( $table, $rows, $params, $options );
 
 }
 
@@ -66,25 +67,69 @@ sub _get_single_async {
 
             return undef unless $cells and @$cells;
 
-            return $self->_transform_cell_array( $cells, $get_proto->{max_versions} > 1 || $params->{timestamped})->{$row};
+            return $self->_transform_row( $cells, $get_proto->{max_versions} > 1, $params->{timestamped});
 
         } );
 
 }
 
-sub put { sync shift->put_async( @_ ); }
+sub delete { sync shift->delete_async( @_ ); }
 
-# $table, $row => { "$family1:$column1" => $value1, "$family2:$column2" => $value2,...  }, { timestamp => $ts, nonce => $n  }
-sub put_async {
+sub delete_async {
 
-    my ($self, $table, $row, $value, $params, $options) = @_;
+    my ($self, $table, $rows, $params, $options) = @_;
+
+    return collect( map { $self->_get_single_async( $table, $_, $params, $options ) } @$rows )
+        ->then( sub {
+
+                return [ map { $_->[0] } @_ ];
+
+            } ) if is_arrayref( $rows );
+
+    return $self->_get_single_async( $table, $rows, $params, $options );
+
+}
+
+sub _delete_single_async {
+
+    my ($self, $table, $row, $params, $options) = @_;
 
     my $mutation = {
-            row           => $row,
-            mutate_type   => HBase::Client::Proto::MutationProto::MutationType::PUT,
-            column_value  => $self->_parse_column_value_array_proto( $value ),
+            row           => $row->{row},
+            mutate_type   => HBase::Client::Proto::MutationProto::MutationType::DELETE,
+        };
 
-            $params ? %$params : (),
+    $mutation->{column_value} = $self->_parse_column_value_array_proto( $params->{columns} ) if $params->{columns};
+
+    return $self->{client}->mutate_async($table, $mutation, undef, undef, $options);
+
+}
+
+sub put { sync shift->put_async( @_ ); }
+
+# $table, { row => $row, "$family1:$column1" => $value1, "$family2:$column2" => $value2,...  }, { timestamp => $ts, nonce => $n  }
+sub put_async {
+
+    my ($self, $table, $rows, $params, $options) = @_;
+
+    return collect( map { $self->_put_single_async( $table, $_, $params, $options ) } @$rows )
+        ->then( sub {
+
+                return [ map { $_->[0] } @_ ];
+
+            } ) if is_arrayref( $rows );
+
+    return $self->_put_single_async( $table, $rows, $params, $options );
+}
+
+sub _put_single_async {
+
+    my ($self, $table, $row, $params, $options) = @_;
+
+    my $mutation = {
+            row           => $row->{row},
+            mutate_type   => HBase::Client::Proto::MutationProto::MutationType::PUT,
+            column_value  => $self->_parse_column_value_array_proto( $row ),
         };
 
     return $self->{client}->mutate_async($table, $mutation, undef, undef, $options);
@@ -96,7 +141,8 @@ sub scanner {
 
     return HBase::Facade::Scanner->_new(
             scanner         => $self->{client}->scanner( $table, $params, $options ),
-            multi_versions  => ($params->{max_versions} // 1) > 1 || $params->{timestamped},
+            multi_versions  => $params->{max_versions} // 1 > 1,
+            timestamped     => $params->{timestamped},
             facade          => $self,
         );
 
@@ -126,12 +172,15 @@ sub _parse_column_array_proto {
 
 sub _parse_column_value_array_proto {
 
-    my ($self, $row_value) = @_;
+    my ($self, $columns_value) = @_;
 
-    my @column_value_proto;
-    my %columns_map;
+    my (@column_value_proto, %columns_map);
 
-    for my $key (keys %$row_value) {
+    my $columns_only = is_arrayref($columns_value);
+
+    for my $key ( $columns_only ? @$columns_value : keys %$columns_value) {
+
+        next if $key eq 'row';
 
         my ($family, $qualifier) = split ':', $key, 2;
 
@@ -139,62 +188,53 @@ sub _parse_column_value_array_proto {
 
         push @column_value_proto, { family => $family, qualifier_value => $columns_map{ $family } = $qualifier_values = [] } unless $qualifier_values;
 
-        push @$qualifier_values, { qualifier => $qualifier, value => $row_value->{ $key } };
+        push @$qualifier_values, { qualifier => $qualifier, $columns_only ? () : (value => $columns_value->{ $key }) };
     }
 
     return \@column_value_proto;
 }
 
-sub _transform_cell_array {
+sub _transform_row {
 
-    my ($self, $cells, $multi_versions, $rows_map) = @_;
+    my ($self, $cells, $multi_versions, $timestamped) = @_;
 
-    return $multi_versions ? $self->_transform_cell_array_multi_versions( $cells, $rows_map ) : $self->_transform_cell_array_single_version( $cells, $rows_map );
+    return undef unless $cells && @$cells;
 
-}
+    my $row = { row => $cells->[0]->get_row };
 
-sub _transform_cell_array_multi_versions {
+    if ($multi_versions){
 
-    my ($self, $cells, $map) = @_;
+        my %to_sort;
 
-    my %to_sort;
+        for my $cell (@$cells){
 
-    for my $cell (@$cells){
+            my $values = $row->{ $cell->get_family . ':' . $cell->get_qualifier  } //= [];
 
-        my $values = $map->{ $cell->get_row }->{ $cell->get_family . ':' . $cell->get_qualifier  } //= [];
+            push @$values, $cell;
 
-        push @$values, $cell;
+            $to_sort{$values} = $values;
 
-        $to_sort{$values} = $values;
+        }
 
-    }
+        @$_ = map { $self->_transform_cell( $_, $timestamped ) } sort { $b->get_timestamp <=> $a->get_timestamp } @$_ for values %to_sort;
 
-    @$_ = map { $self->_transform_cell( $_ ) } sort { $b->get_timestamp <=> $a->get_timestamp } @$_ for values %to_sort;
+    } else {
 
-    return $map;
-
-}
-
-sub _transform_cell_array_single_version {
-
-    my ($self, $cells, $map) = @_;
-
-    for my $cell (@$cells){
-
-        $map->{ $cell->get_row }->{ $cell->get_family . ':' . $cell->get_qualifier } =  $self->_transform_cell($cell, 1);
+        $row->{ $_->get_family . ':' . $_->get_qualifier } =  $self->_transform_cell( $_, $timestamped ) for @$cells;
 
     }
 
-    return $map;
+    return $row;
+
 }
 
 sub _transform_cell {
 
-    my ($self, $cell, $flatten) = @_;
+    my ($self, $cell, $timestamped) = @_;
 
     warn "Unexpected cell type @{[$cell->get_cell_type]}" unless $cell->get_cell_type == 4;
 
-    return $cell->get_value if $flatten;
+    return $cell->get_value unless $timestamped;
 
     return {
             value     => $cell->get_value,
@@ -221,13 +261,7 @@ sub next_async {
 
                 my ($results) = @_;
 
-                return undef unless $results;
-
-                my $rows = {};
-
-                $self->{facade}->_transform_cell_array( $_->get_cell_list // [], $self->{multi_versions}, $rows ) for @$results;
-
-                return $rows;
+                return $result ? [ map { $self->_transform_row( $_->get_cell_list, $self->{multi_versions}, $self->{timestamped}) } @$results ] : undef;
 
             } );
 
@@ -241,6 +275,7 @@ sub _new {
             scanner        => $args{scanner},
             multi_versions => $args{multi_versions},
             facade         => $args{facade},
+            timestamped    => $args{timestamped},
         }, $class;
 }
 

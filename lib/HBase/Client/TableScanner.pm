@@ -51,20 +51,21 @@ sub next {
 
                     my ($response) = @_;
 
-                    if ($self->{exclude_start} && (my @results = @{$response->get_results_list // []})){
-                        if ($results[0]->get_cell(0)->get_row eq $self->{current_start}){
-                            shift @results;
-                            $response->set_results_list( \@results );
+                    my $results = $response->get_results_list // [];
+
+                    if ($self->{exclude_start} && @$results){
+                        if ($results->[0]->get_cell(0)->get_row eq $self->{current_start}){
+                            shift @$results;
                         }
                     }
 
-                    if (my @results = @{$response->get_results_list // []}){
+                    if (@$results){
 
                         # update the last seen row to be able to recover after scanner loss
-                        $self->{current_start} = $results[-1]->get_cell(0)->get_row;
+                        $self->{current_start} = $results->[-1]->get_cell(0)->get_row;
                         $self->{exclude_start} = 1,
 
-                        return $response->get_results_list // [];
+                        return $results;
 
                     } else {
                         # no rows left in the region?

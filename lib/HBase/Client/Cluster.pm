@@ -106,7 +106,9 @@ sub load_regions {
 
             $scanner->next->then( sub {
 
-                    if (my $rows = $_[0]){
+                    my ($rows) = @_;
+
+                    if ($rows){
 
                         for my $row (@$rows) {
 
@@ -157,10 +159,15 @@ sub load_regions {
                 my $start = $regions[0]->start;
                 my $end = $regions[-1]->end;
 
-                context->log( "Loading regions failed" );
+                unless ($start eq $region->start && $end eq $region->end){
 
-                die sprintf( "Broken regions sequence: %s ends at %s was replaced by a sequence covering $start ... $end \n", $region->name, $region->end, $start, $end)
-                    unless $start eq $region->start && $end eq $region->end;
+                    context->log( sprintf( "Loading replacing regions failed: %s ends at %s was replaced by a sequence covering $start ... $end \n", $region->name, $region->end, $start, $end) );
+
+                    die sprintf( "Broken regions sequence: %s ends at %s was replaced by a sequence covering $start ... $end \n", $region->name, $region->end, $start, $end);
+
+                }
+
+
 
             }
 
