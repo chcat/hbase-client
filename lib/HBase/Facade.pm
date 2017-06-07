@@ -261,7 +261,7 @@ sub next_async {
 
                 my ($results) = @_;
 
-                return $result ? [ map { $self->_transform_row( $_->get_cell_list, $self->{multi_versions}, $self->{timestamped}) } @$results ] : undef;
+                return $results ? [ map { $self->_transform_row( $_->get_cell_list, $self->{multi_versions}, $self->{timestamped}) } @$results ] : undef;
 
             } );
 
