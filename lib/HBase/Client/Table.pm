@@ -78,9 +78,11 @@ sub mutate {
 
     try {
 
+        my $region;
+
         return $self->region( $mutation->{row} )
             ->then( sub {
-                    my ($region) = @_;
+                    ($region) = @_;
 
                     return $region->mutate_async( $mutation, $condition, $nonce_group );
                 } )
