@@ -175,9 +175,7 @@ sub handle_region_error { # TODO
 
     if (not defined $region){
 
-        $self->invalidate;
-
-        retry( delays => [0.25, 0.5, 1, 2, 4, 8, 10, 10], cause => exception($error) );
+        die $error;
 
     } elsif (exception($error) eq 'org.apache.hadoop.hbase.NotServingRegionException'
         || exception($error) eq 'org.apache.hadoop.hbase.regionserver.RegionServerStoppedException'
