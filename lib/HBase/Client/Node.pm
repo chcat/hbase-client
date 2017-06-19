@@ -4,7 +4,6 @@ use v5.14;
 use warnings;
 
 use Scalar::Util qw( weaken );
-use HBase::Client::Context qw( context );
 
 sub new {
 
@@ -48,8 +47,6 @@ sub query {
 
             return $connected_rpc->make_call( $query->to_rpc_call, $options )->finally( sub {
 
-                    context->register_io_stats( $options->{stats} );
-
                     # allows the pool to disconnect the node if there are no pending calls
                     $self->_pool->unblock_disconnecting( $self ) if --$self->{pending_requests_count} == 0; # TODO: handle scans properly
 
@@ -74,22 +71,16 @@ sub _connect {
     return $self->_reserve_connection
         ->then( sub {
 
-                context->log( "Connecting to $self->{server} ..." );
-
                 $self->_rpc->connect;
 
             } )
         ->then( sub {
-
-                context->log( "Connected to $self->{server}" );
 
                 my ($connected_rpc) = @_;
 
                 $connected_rpc->disconnected->then( sub {
 
                         my ($reason) = @_;
-
-                        context->log( "Disconnected from $self->{server} cause: $reason" );
 
                         undef $self->{connected};
 

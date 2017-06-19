@@ -3,8 +3,6 @@ package HBase::Client::Try;
 use v5.14;
 use warnings;
 
-use HBase::Client::Context qw( context );
-
 use AnyEvent;
 use Promises qw( deferred );
 use Scalar::Util qw( blessed );
@@ -24,8 +22,6 @@ our @EXPORT_OK= qw(
 sub try (&) {
 
     my ($sub) = @_;
-
-    context->{try}->{enter}++;
 
     my $deferred = deferred;
 
@@ -162,8 +158,6 @@ sub _try_loop {
 
     $sub->()->done( sub {
 
-            context->{try}->{success}++;
-
             $deferred->resolve( @_ );
 
         }, sub {
@@ -173,8 +167,6 @@ sub _try_loop {
             my $error_type = blessed $error // '';
 
             if ($error_type eq 'HBase::Client::Try::Done'){
-
-                context->{try}->{success}++;
 
                 $deferred->resolve( @$error );
 
@@ -190,8 +182,6 @@ sub _try_loop {
 
                         my $delay = $delays->[$retry_attempt];
 
-                        context->{try}->{retry}++;
-
                         return delay $delay, sub {_try_loop( $sub, $deferred, $state )};
 
                     }
@@ -202,8 +192,6 @@ sub _try_loop {
 
                     if (!defined $limit or $retry_attempt < $limit){
 
-                        context->{try}->{retry}++;
-
                         return _try_loop( $sub, $deferred, $state ) ;
 
                     }
@@ -213,8 +201,6 @@ sub _try_loop {
                 $error = $error->{cause};
 
             }
-
-            context->{try}->{failure}++;
 
             $deferred->reject( $error );
 

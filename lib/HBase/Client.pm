@@ -10,7 +10,6 @@ use HBase::Client::Cluster;
 use HBase::Client::NodePool;
 use HBase::Client::ZookeeperMetaHolderLocator;
 
-use HBase::Client::Context qw( set_context );
 use HBase::Client::RequestExecutionContext;
 
 
@@ -46,8 +45,6 @@ sub prepare_async {
 
     my ($self, $options) = @_;
 
-    set_context( HBase::Client::RequestExecutionContext->new( $options->{stats} ) );
-
     return $self->_cluster->prepare;
 
 }
@@ -57,8 +54,6 @@ sub get { sync shift->get_async( @_ ); }
 sub get_async {
 
     my ($self, $table, $get, $options) = @_;
-
-    set_context( HBase::Client::RequestExecutionContext->new( $options->{stats} ) );
 
     my $timeout = $options->{timeout} // $self->{timeout};
 
@@ -72,8 +67,6 @@ sub mutate_async {
 
     my ($self, $table, $mutation, $condition, $nonce_group, $options) = @_;
 
-    set_context( HBase::Client::RequestExecutionContext->new( $options->{stats} ) );
-
     my $timeout = $options->{timeout} // $self->{timeout};
 
     return timeout $timeout, sub { $self->_cluster->table( $table )->mutate( $mutation, $condition, $nonce_group ) };
@@ -85,8 +78,6 @@ sub exec_service { sync shift->exec_service_async( @_ ); }
 sub exec_service_async {
 
     my ($self, $table, $call, $options) = @_;
-
-    set_context( HBase::Client::RequestExecutionContext->new( $options->{stats} ) );
 
     my $timeout = $options->{timeout} // $self->{timeout};
 
@@ -126,13 +117,10 @@ use warnings;
 
 use HBase::Client::Try qw( sync timeout try handle retry done);
 use Promises qw( deferred );
-use HBase::Client::Context qw( set_context );
 
 sub next_async {
 
     my ($self, $options) = @_;
-
-    set_context( HBase::Client::RequestExecutionContext->new( $options->{stats} ) );
 
     my $buffer = $self->{buffer};
 

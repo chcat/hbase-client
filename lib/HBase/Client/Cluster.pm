@@ -12,7 +12,6 @@ use HBase::Client::Utils qw(
         meta_table_name
     );
 use HBase::Client::Try qw( try retry done handle );
-use HBase::Client::Context qw( context );
 
 sub new {
 
@@ -73,8 +72,6 @@ sub load_regions {
 
         if ($region){
 
-            context->log( "Loading regions for $table to replace ".$region->name );
-
             my $end = $region->end;
 
             $scan = {
@@ -84,17 +81,11 @@ sub load_regions {
                 };
         } else {
 
-            context->log( "Loading regions for $table" );
-
             $scan = {
                 start_row   => region_name( $table ),             # "$tablename,,"
                 stop_row    => region_name( next_key( $table ) ), # "$tablename\x00,,"
             };
         }
-
-    } else {
-
-        context->log( "Loading all regions" );
 
     }
 
@@ -161,17 +152,11 @@ sub load_regions {
 
                 unless ($start eq $region->start && $end eq $region->end){
 
-                    context->log( sprintf( "Loading replacing regions failed: %s ends at %s was replaced by a sequence covering $start ... $end \n", $region->name, $region->end, $start, $end) );
-
                     die sprintf( "Broken regions sequence: %s ends at %s was replaced by a sequence covering $start ... $end \n", $region->name, $region->end, $start, $end);
 
                 }
 
-
-
             }
-
-            context->log( "Loading regions successful" );
 
             return \@regions;
 

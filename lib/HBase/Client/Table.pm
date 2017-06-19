@@ -11,7 +11,6 @@ use HBase::Client::Try qw( try retry done handle );
 use List::BinarySearch qw( binsearch_pos );
 use Promises qw( deferred collect );
 use Scalar::Util qw( weaken );
-use HBase::Client::Context qw( context );
 
 sub new {
     my ($class, %args) = @_;
@@ -336,8 +335,6 @@ sub load {
 
     return $self->{loaded} if $self->{loaded} && !$force_reload;
 
-    context->log( "Loading table $self->{name}..." . ($force_reload ? " reloading" : "") );
-
     $self->{invalidating} = 1; # blocks invalidation on request; unblocking must be done on the same spin of the event loop as releasing the loading lock
 
     my $lock;
@@ -354,11 +351,7 @@ sub load {
                     $self->{invalidating} = 0; # unblocks invalidation on request
                     $self->{invalide_regions} = {};
 
-                    context->log( "Loading table $self->{name} completed" );
-
                 } else {
-
-                    context->log( "Loading table $self->{name} dropped: completed" );
 
                     die "Loading table $self->{name} dropped";
 
@@ -375,13 +368,9 @@ sub load {
                     undef $self->{loaded};
                     $self->{invalidating} = 0; # unblocks invalidation on request
 
-                    context->log( "Loading table $self->{name} failed: $error" );
-
                     die "Loading table $self->{name} failed: $error";
 
                 } else {
-
-                    context->log( "Loading table $self->{name} dropped: failed: $error" );
 
                     die "Loading table $self->{name} dropped";
 
