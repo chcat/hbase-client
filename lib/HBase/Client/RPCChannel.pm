@@ -6,7 +6,13 @@ use warnings;
 use AnyEvent;
 use HBase::Client::Proto::Loader;
 use HBase::Client::Proto::Utils qw( split_delimited join_delimited );
+use HBase::Client::Error qw(
+        connection_error
+        timeout_error
+        exception_error
+    );
 use Promises qw( deferred );
+
 
 sub new {
 
@@ -62,6 +68,12 @@ sub _on_disconnect {
 
     $disconnected->resolve( $reason ) if $disconnected;
 
+    while (my ($call_id, $call) = each %{$self->{calls}}) {
+        delete $self->{calls}->{ $call_id };
+        undef $call->{timeout_watcher};
+        $call->{deferred}->reject( connection_error( $reason ) );
+    }
+
     return;
 }
 
@@ -85,7 +97,7 @@ sub _connect {
 
             if ($error){
 
-                $deferred->reject( "Connection problem: $error" );
+                $deferred->reject( connection_error( $error ) );
 
             } else{
 
@@ -108,7 +120,7 @@ sub _connect {
 
                 undef $self->{connected};
 
-                die $error;
+                die connection_error( $error );
 
             } );
 
@@ -136,7 +148,7 @@ sub _write_connection_header {
 
             if ($error){
 
-                $deferred->reject( "Connection problem: $error" );
+                $deferred->reject( connection_error( $error ) );
 
             } else {
 
@@ -191,7 +203,7 @@ sub _timeout_call {
 
     if ( my $call = delete $self->{calls}->{ $call_id } ){
 
-            $call->{deferred}->reject('TIMEOUT');
+            $call->{deferred}->reject( timeout_error( 'RPC call timeout' ) );
 
     }
 
@@ -237,7 +249,7 @@ sub _on_read {
 
             if ( $header->has_exception ){
 
-                $deferred->reject( $header->get_exception );
+                $deferred->reject( exception_error( $header->get_exception ) );
 
             } else {
 
@@ -247,7 +259,7 @@ sub _on_read {
 
         } else {
 
-            # Got a response to a call that we forgot or never did. TODO
+            # Got a response to a call that we either considered failed already or never did. TODO
 
             warn $header->encode_json; #TODO
 

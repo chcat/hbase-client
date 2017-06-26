@@ -64,28 +64,18 @@ sub table {
 
 sub load_regions {
 
-    my ($self, $table, $region) = @_;
+    my ($self, $table, $start, $end) = @_;
 
-    my $scan = {}; # scan all meta by default
+    my $scan = {reversed => 1};
 
     if (defined $table){
 
-        if ($region){
+        # we would like to return a list of regions covering the interval [$start,$end] of rows
+        # that is a bit tricky, cause the region covering $start usually starts before $start
+        # so we use a reversed scan
 
-            my $end = $region->end;
-
-            $scan = {
-                    start_row   => region_name( $table, $region->start ),                             # "$tablename,$start_key,"
-                    stop_row    => region_name( $end eq '' ? next_key( $table ) : ( $table, $end ) ), # stop at "$tablename\x00,," if given the last region,
-                                                                                                      # otherwise stop at "$tablename,$end_key,"
-                };
-        } else {
-
-            $scan = {
-                start_row   => region_name( $table ),             # "$tablename,,"
-                stop_row    => region_name( next_key( $table ) ), # "$tablename\x00,,"
-            };
-        }
+        $scan->{start_row} = defined $end && $end ne '' ? region_name( $table, $end, '99999999999999' ) : region_name( next_key( $table ) );
+        $scan->{stop_row} = region_name( $table, $end // '' );
 
     }
 
@@ -105,32 +95,6 @@ sub load_regions {
 
                             if (my $region = HBase::Client::Region->parse( $self, $row )){
 
-                                next if $region->is_offline || $region->is_split; # these can't be used for serving requests
-
-                                if (my $previous_region = $regions[-1]){
-
-                                    if ($previous_region->table_name eq $region->table_name){
-
-                                        my $end = $previous_region->end;
-                                        my $start = $region->start;
-
-                                        warn sprintf( "Bad region sequence: %s ends at %s while the next is %s \n", $previous_region->name, $end, $region->name )
-                                            unless $end eq $start;
-
-                                        if ($previous_region->start eq $start){
-                                            # This type of inconsistency most likely caused by not closing a region after split.
-                                            # We can compensate it taking into account that the region id usually is timestamp of its opening,
-                                            # so we just replace the older one.
-                                            $regions[-1] = $region;
-
-                                            next;
-
-                                        }
-
-                                    }
-
-                                }
-
                                 push @regions, $region;
 
                             }
@@ -141,26 +105,13 @@ sub load_regions {
 
                     }
 
+                    @regions = reverse @regions;
+
+                    return \@regions;
+
                 });
 
-        }->then( sub {
-
-            if (@regions && $region){
-
-                my $start = $regions[0]->start;
-                my $end = $regions[-1]->end;
-
-                unless ($start eq $region->start && $end eq $region->end){
-
-                    die sprintf( "Broken regions sequence: %s ends at %s was replaced by a sequence covering $start ... $end \n", $region->name, $region->end, $start, $end);
-
-                }
-
-            }
-
-            return \@regions;
-
-        } );
+        };
 }
 
 sub prepare {
@@ -177,7 +128,7 @@ sub prepare {
 
                 push @{ $tables{$_->table_name} //= [] }, $_ for @$regions;
 
-                $self->table( $_ )->inflate( $tables{$_} ) for keys %tables;
+                $self->table( $_ )->load( $tables{$_} ) for keys %tables;
 
             }, sub {
 

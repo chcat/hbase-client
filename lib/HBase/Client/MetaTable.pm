@@ -40,7 +40,6 @@ sub region {
                         end         => '',
                         table_name  => $self->name,
                         cluster     => $self->cluster,
-                        is_offline  => 0,
                     );
 
                 }, sub {
@@ -82,8 +81,6 @@ sub load {
         } );
 
 }
-
-sub inflate { }
 
 sub region_after { deferred->resolve( undef ); }
 

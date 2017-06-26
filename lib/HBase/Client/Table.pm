@@ -12,6 +12,11 @@ use List::BinarySearch qw( binsearch_pos );
 use Promises qw( deferred collect );
 use Scalar::Util qw( weaken );
 
+use HBase::Client::Error qw(
+        is_region_error
+        is_exception_error
+    );
+
 sub new {
     my ($class, %args) = @_;
 
@@ -96,66 +101,160 @@ sub mutate {
 
 }
 
+sub handle_region_error { # TODO
+
+    my ($self, $region, $error) = @_;
+
+    if ($region && is_region_error($error)){
+
+        retry( delays => [0.25, 0.5, 1, 2, 4, 8, 10, 10], cause => $error );
+
+    } else {
+
+        warn sprintf( "Error querifying a region %s : %s \n", $region ? $region->name : 'NO REGION', $error);
+
+        die $error;
+
+    }
+
+}
+
+sub diff {
+
+    my @in;
+    my @c;
+    my @out;
+
+
+
+}
+
 
 sub exec_service {
 
     my ($self, $call) = @_;
 
-    my %results;
+    my @processed;
 
     try {
 
         $self->load->then( sub {
 
-            my $regions = $self->{regions};
+            my @regions = @{ $self->{regions} };
 
-            die "No regions for table $self->{name}" unless @$regions;
+            my (@merged, @to_process);
 
-            my ($retryable_error, $critial_error, @promises);
+            my ($i, $j, $segment_ok, $segment_start_i, $segment_start_j) = (0, 0, 1);
 
-            for my $region (@$regions){
+            while ($i < @processed && $j < @regions){
 
-                unless ( $results{ $region->name } ) {
+                if ( $processed[$i]->{region}->start lt $regions[$j]->start ){
 
-                    push @promises, $region->exec_service_async( $call )
-                        ->then( sub {
-                                my ($result) = @_;
+                    $segment_ok &&= !defined $processed[$i]->{error};
 
-                                $results{$region->name} = $result;
+                    $i++;
 
-                            }, sub {
+                } elsif ( $processed[$i]->{region}->start gt $regions[$j]->start ){
 
-                                my ($error) = @_;
+                    $j++;
 
-                                if (exception($error) eq 'org.apache.hadoop.hbase.NotServingRegionException'
-                                    || exception($error) eq 'org.apache.hadoop.hbase.regionserver.RegionServerStoppedException'
-                                    || exception($error) eq 'org.apache.hadoop.hbase.exceptions.RegionMovedException'){
+                } else {
 
-                                    $retryable_error = $error;
+                    if ($segment_ok){
 
-                                    $self->invalidate( $region );
+                        push @merged, @processed[($segment_start_i // 0) .. $i - 1];
 
-                                } else {
+                    } else {
 
-                                    $critial_error = $error;
+                        my @temp = map { { region => $_ } } @regions[ ($segment_start_j // 0) .. $j - 1];
 
-                                }
+                        push @to_process, @temp;
 
-                                # eat the error to collect partial results
+                        push @merged, @temp;
 
-                            } );
+                    }
+
+                    $segment_start_i = $i;
+                    $segment_start_j = $j;
+
+                    $segment_ok = !defined $processed[$i]->{error};
+
+                    $i++;
+                    $j++;
 
                 }
 
             }
 
+            while ($i < @processed) {
+
+                $segment_ok &&= !defined $processed[$i]->{error};
+
+                $i++;
+
+            }
+
+            if ($segment_ok && @processed) {
+
+                push @merged, @processed[($segment_start_i // 0) .. $#processed];
+
+            } else {
+
+                my @temp = map { { region => $_ } } @regions[ ($segment_start_j // 0) .. $#regions];
+
+                push @to_process, @temp;
+
+                push @merged, @temp;
+
+            }
+
+            @processed = @merged;
+
+            my ($fail, $retry, @promises);
+
+            for my $holder (@to_process){
+
+                push @promises, $holder->{region}->exec_service_async( $call )
+                    ->then( sub {
+                            my ($result) = @_;
+
+                            $holder->{result} = $result;
+
+                        }, sub {
+
+                            my ($error) = @_;
+
+                            $holder->{error} = $error;
+
+                            if (is_region_error($error)){
+
+                                $retry = 1;
+
+                            } else {
+
+                                $fail = 1;
+
+                            }
+
+                        } );
+
+            }
+
             return collect( @promises )->then( sub {
 
-                    die sprintf( "Coprocessor service error: %s \n", exception($critial_error) eq 'unknown' ? $critial_error : exception($critial_error) ) if $critial_error;
+                    if ($fail) {
 
-                    retry( count => 6, cause => 'Failed Coprocessor calls') if $retryable_error;
+                        die [ map { is_exception_error( $_->{error} ) ? () : { error => $_->{error}->exception, region => $_->{region}->name, server => $_->{region}->server } } @processed];
 
-                    return [ @results{ map {$_->name} @$regions } ];
+                    } elsif ($retry) {
+
+                        retry( delays => [0.25, 0.5, 1, 2, 4], cause => 'Coprocessor call non fatal failure');
+
+                    } else {
+
+                        return [ map { $_->{result} }  @processed];
+
+                    }
 
                 } );
 
@@ -165,40 +264,6 @@ sub exec_service {
 
 
 }
-
-
-sub handle_region_error { # TODO
-
-    my ($self, $region, $error) = @_;
-
-    handle($error);
-
-    if (not defined $region){
-
-        die $error;
-
-    } elsif (exception($error) eq 'org.apache.hadoop.hbase.NotServingRegionException'
-        || exception($error) eq 'org.apache.hadoop.hbase.regionserver.RegionServerStoppedException'
-        || exception($error) eq 'org.apache.hadoop.hbase.exceptions.RegionMovedException'){
-
-        $self->invalidate( $region );
-
-        retry( delays => [0.25, 0.5, 1, 2, 4, 8, 10, 10], cause => exception($error) );
-
-    } else {
-
-        warn sprintf( "Error querifying a region %s : %s \n", $region->name, exception($error) eq 'unknown' ? $error : exception($error) );
-
-        # the following is desperately irrational:
-
-        $self->invalidate;
-
-        retry( delays => [0.25, 0.5, 1, 2, 4, 8, 10, 10], cause => exception($error) );
-
-    }
-
-}
-
 
 sub region {
 
@@ -212,12 +277,7 @@ sub region {
 
             } else {
 
-                # Table loaded successfully, but there is no region for the row? Either we corrupted
-                # the region cache somehow or the table does not exists...
-
-                $self->invalidate;
-
-                die "No regions are present for table $self->{name}: probably the table does not exist";
+                die sprintf("Table %s cache currupted: was looking for a region for %s \n", $self->name, $row);
 
             }
 
@@ -249,12 +309,7 @@ sub region_before {
 
             } else {
 
-                # Table loaded successfully, but there is no region for the row? Either we corrupted
-                # the region cache somehow or the table does not exists...
-
-                $self->invalidate;
-
-                die "No regions are present for table $self->{name}: probably the table does not exist";
+                die sprintf("Table %s cache is currupted: was looking for a region before %s \n", $self->name, $region);
 
             }
 
@@ -266,32 +321,12 @@ sub invalidate {
 
     my ($self, $region) = @_;
 
-    # We assume the caller to be waiting on $table->load lock for the invalidation result
-
-    # There can be multiple execution chains simultaneously discovering that the cache is no longer valid...
-    # So we ignore the invalidation request if the table is being invalidated or the region already known to be invlid
-
-    return if $self->{invalidating} || $region && $self->{invalide_regions}->{$region};
-
-    if ($region && $self->{loaded}){
-
-        my $version = $self->{version}; # catch the current table cache version to the closure
-
-        $self->{invalide_regions}->{$region} = 1;
-
-        $self->{loaded} = $self->{loaded}->then( sub {
-
-                    $self->cluster->load_regions( $self->name, $region );
-
-                } )
+    return $self->cluster->load_regions( $self->name, $region->start, $region->stop )
             ->then( sub {
 
-                    my ($replacement) = @_;
+                    my ($regions) = @_;
 
-                    return if $self->{invalidating} || $version != $self->{version}; # not interested in the result anymore
-
-                    # do the fix
-                    $self->_region_cache_replace( $region, $replacement );
+                    $self->_patch_cache( $regions );
 
                     return;
 
@@ -300,85 +335,45 @@ sub invalidate {
 
                     my ($error) = @_;
 
-                    $self->invalidate; # we were not able to fix the cache: drop it
+                    warn sprintf("Fixing region cache around %s failed cause: %s", $region->name, $error);
 
-                    die sprintf("Fixing region cache around %s failed cause: %s", $region->name, $error);
-
-                } )
-            ->finally( sub {
-
-                    delete $self->{invalide_regions}->{$region};
+                    die $error;
 
                 } );
-
-    } else {
-
-        $self->load( 1 );
-
-    }
-
-    return;
-
-}
-
-sub inflate {
-
-    my ($self, $regions) = @_;
-
-    $self->{regions} = $regions;
-
-    $self->{loaded} = deferred->resolve($regions)->promise;
-
-    return;
 
 }
 
 sub load {
 
-    my ($self, $force_reload) = @_;
+    my ($self, $regions) = @_;
 
-    return $self->{loaded} if $self->{loaded} && !$force_reload;
+    if ($regions) {
 
-    $self->{invalidating} = 1; # blocks invalidation on request; unblocking must be done on the same spin of the event loop as releasing the loading lock
+        $self->_inflate( regions );
 
-    my $lock;
+        return $self->{loaded} = deferred->resolve;
 
-    return $self->{loaded} = $lock = $self->cluster->load_regions( $self->name )
+    }
+
+    return $self->{loaded} //= $self->cluster->load_regions( $self->name )
         ->then( sub {
 
                 my ($regions) = @_;
 
-                if ( $lock == $self->{loaded} ) {
+                die 'No regions present' unless @$regions;
 
-                    $self->{regions} = $regions;
-                    $self->{version}++;
-                    $self->{invalidating} = 0; # unblocks invalidation on request
-                    $self->{invalide_regions} = {};
-
-                } else {
-
-                    die "Loading table $self->{name} dropped";
-
-                }
+                $self->_inflate( $regions );
 
                 return;
 
-            }, sub {
+            })
+        ->catch( sub {
 
                 my ($error) = @_;
 
-                if ( $lock == $self->{loaded} ) {
+                undef $self->{loaded};
 
-                    undef $self->{loaded};
-                    $self->{invalidating} = 0; # unblocks invalidation on request
-
-                    die "Loading table $self->{name} failed: $error";
-
-                } else {
-
-                    die "Loading table $self->{name} dropped";
-
-                }
+                die sprintf("Loading table %s failed: %s \n", $self->name, $error);
 
             } );
 }
@@ -388,6 +383,128 @@ GETTERS: {
     no strict 'refs';
 
     *{$_} = getter( $_ ) for qw( name cluster );
+
+}
+
+sub _inflate {
+
+    my ($self, $regions) = @_;
+
+    $regions = $self->_fix_region_sequence( $regions );
+
+    if (@$regions) {
+
+        unshift @$regions, HBase::Client::Region->dummy( { table_name => $self->name, start => '', end => $regions->[0]->start } ) if $regions->[0]->start ne '';
+
+        push @$regions, HBase::Client::Region->dummy( { table_name => $self->name, start => $regions->[-1]->end, end => '' } ) if $regions->[-1]->end ne '';
+
+    } else {
+
+        push @$regions, HBase::Client::Region->dummy( { table_name => $self->name, start => '', end => '' } );
+
+    }
+
+    $self->{regions} = $regions;
+
+    return;
+
+}
+
+# The main thing is to have a "partition" (in math sence) of the key space onto regions after patching the cache assuming
+# it was correct (=partition) before.
+sub _patch_cache {
+
+    my ($self, $patch) = @_;
+
+    die 'Empty region map patch' unless ($patch && @$patch);
+
+    $patch = $self->_fix_region_sequence( $patch );
+
+    die 'Bad region map patch' unless (@$patch);
+
+    my $start = $patch->[0]->start;
+    my $end = $patch->[-1]->end;
+
+    my $start_position = $self->_region_cache_position_lookup( $start );
+
+    die 'Broken table cache' unless defined $start_position;
+
+    my $outdated_first = $self->{regions}->[$position];
+
+    unshift @$patch, HBase::Client::Region->dummy( { table_name => $self->name, start => $outdated_first->start, end => $start } ) if $outdated_first->start ne $start;
+
+    my $end_position = $start_position;
+
+    my $outdated_last = $self->{regions}->[$end_position];
+
+    while ($outdated_last->end ne '' && ($outdated_last->end lt $end || $end eq '' )  ) {
+
+        $outdated_last = $self->{regions}->[++$end_position];
+
+    }
+
+    push @$patch, HBase::Client::Region->dummy( { table_name => $self->name, start => $end, end => $outdated_last->end } ) if $outdated_last->end ne $end;
+
+    splice @{$self->{regions}}, $start_position, $end_position - $start_position + 1, @$patch;
+
+}
+
+# A "good" sequence of regions is the one that forms a coverage of some interval of keys.
+# The sad truth is that the regions present in the meta usually does not form a "good" sequence.
+# Here we try to fix the given sequence.
+sub _fix_region_sequence {
+
+    my ($self, $regions) = @_;
+
+    my @fixed;
+
+    for my $region (@$regions){
+
+        next if $region->table_name ne $self->name || $region->is_invalide;
+
+        my $previous_region = $fixed[-1];
+
+        while ($previous_region && ( $region->start lt $previous_region->end || $previous_region->end eq '')) {
+
+            # well, looks like the meta is completely broken :(
+
+            warn sprintf( "Bad region sequence: %s ends at %s while %s in online \n", $previous_region->name, $previous_region->end, $region->name );
+
+            pop @fixed;
+
+            $previous_region = $fixed[-1];
+
+        }
+
+        # at this point, the previous region, if any, ends at or before the current start
+
+        if ($previous_region){
+
+            if ($previous_region->end eq $region->start) {
+
+                push @fixed, $region;
+
+            } elsif ($previous_region->end lt $region->start){
+
+                # there is a hole between regions :(
+
+                warn sprintf( "Bad region sequence: %s ends at %s while the next is %s \n", $previous_region->name, $previous_region->end, $region->name );
+
+                # we fill the hole in the region map by a dummy region
+
+                push @fixed, HBase::Client::Region->dummy( { table_name => $self->name, start => $previous_region->end, end => $region->start } ), $region;
+
+            }
+
+        } else {
+
+            push @fixed, $region;
+
+        }
+
+    }
+
+    return \@fixed;
 
 }
 
