@@ -394,13 +394,13 @@ sub _inflate {
 
     if (@$regions) {
 
-        unshift @$regions, HBase::Client::Region->dummy( { table_name => $self->name, start => '', end => $regions->[0]->start } ) if $regions->[0]->start ne '';
+        unshift @$regions, HBase::Client::Region->dummy( table_name => $self->name, start => '', end => $regions->[0]->start ) if $regions->[0]->start ne '';
 
-        push @$regions, HBase::Client::Region->dummy( { table_name => $self->name, start => $regions->[-1]->end, end => '' } ) if $regions->[-1]->end ne '';
+        push @$regions, HBase::Client::Region->dummy( table_name => $self->name, start => $regions->[-1]->end, end => '' ) if $regions->[-1]->end ne '';
 
     } else {
 
-        push @$regions, HBase::Client::Region->dummy( { table_name => $self->name, start => '', end => '' } );
+        push @$regions, HBase::Client::Region->dummy( table_name => $self->name, start => '', end => '' );
 
     }
 
@@ -431,7 +431,7 @@ sub _patch_cache {
 
     my $outdated_first = $self->{regions}->[$start_position];
 
-    unshift @$patch, HBase::Client::Region->dummy( { table_name => $self->name, start => $outdated_first->start, end => $start } ) if $outdated_first->start ne $start;
+    unshift @$patch, HBase::Client::Region->dummy( table_name => $self->name, start => $outdated_first->start, end => $start ) if $outdated_first->start ne $start;
 
     my $end_position = $start_position;
 
@@ -443,7 +443,7 @@ sub _patch_cache {
 
     }
 
-    push @$patch, HBase::Client::Region->dummy( { table_name => $self->name, start => $end, end => $outdated_last->end } ) if $outdated_last->end ne $end;
+    push @$patch, HBase::Client::Region->dummy( table_name => $self->name, start => $end, end => $outdated_last->end ) if $outdated_last->end ne $end;
 
     splice @{$self->{regions}}, $start_position, $end_position - $start_position + 1, @$patch;
 
@@ -492,7 +492,7 @@ sub _fix_region_sequence {
 
                 # we fill the hole in the region map by a dummy region
 
-                push @fixed, HBase::Client::Region->dummy( { table_name => $self->name, start => $previous_region->end, end => $region->start } ), $region;
+                push @fixed, HBase::Client::Region->dummy( table_name => $self->name, start => $previous_region->end, end => $region->start ), $region;
 
             }
 

@@ -186,7 +186,7 @@ sub _query {
     # There are a few scenarios when we query an invalid region (like a dummy one, or a just invalid one that
     # was not invalidated successfully) and we would like the caller to retry AFTER the current invalidation
     # attempt
-    return $self->invalidate->finally( sub { die $self->is_invalid; } ) if ($self->is_invalid);
+    return $self->invalidate->then( sub { die $self->is_invalid; }, sub { die $self->is_invalid; } ) if ($self->is_invalid);
 
     # These signalize we better try somewhere else
     state $invalidating_exceptions = [ qw (
@@ -209,7 +209,7 @@ sub _query {
                 $self->{is_invalid} = region_error( $error );
 
                 # throw a retryable exception after invalidation completes
-                return $self->invalidate->finally( sub { die $self->is_invalid; } )
+                return $self->invalidate->then( sub { die $self->is_invalid; }, sub { die $self->is_invalid; } );
 
             }
 

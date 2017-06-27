@@ -66,16 +66,12 @@ sub load_regions {
 
     my ($self, $table, $start, $end) = @_;
 
-    my $scan = {reversed => 1};
+    my $scan = {};
 
     if (defined $table){
 
-        # we would like to return a list of regions covering the interval [$start,$end] of rows
-        # that is a bit tricky, cause the region covering $start usually starts before $start
-        # so we use a reversed scan
-
-        $scan->{start_row} = defined $end && $end ne '' ? region_name( $table, $end, '99999999999999' ) : region_name( next_key( $table ) );
-        $scan->{stop_row} = region_name( $table, $end // '' );
+        $scan->{start_row} = region_name( $table, $start // '' );
+        $scan->{stop_row} = defined $end && $end ne '' ? region_name( $table, $end ) : region_name( next_key( $table ) );
 
     }
 
@@ -105,13 +101,46 @@ sub load_regions {
 
                     }
 
-                    @regions = reverse @regions;
+                })->then( sub {
+
+                    if (defined $start && $start lt $regions[0]->start){
+
+                        my $additional_scan = {
+                                reversed => 1,
+                                start_row => region_name( $table, $start // '' ),
+                            };
+
+                        my $additional_scanner = $self->table( meta_table_name )->scanner( $additional_scan, { number_of_rows => 1 } );
+
+                        return $additional_scanner->next->then( sub {
+
+                                my ($rows) = @_;
+
+                                if ($rows){
+
+                                    for my $row (@$rows) {
+
+                                        if (my $region = HBase::Client::Region->parse( $self, $row )){
+
+                                            unshift @regions, $region;
+
+                                        }
+
+                                    }
+
+                                }
+
+                                return \@regions;
+
+                            } );
+
+                    }
 
                     return \@regions;
 
-                });
+                } );
 
-        };
+        }
 }
 
 sub prepare {
