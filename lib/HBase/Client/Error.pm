@@ -63,13 +63,6 @@ use warnings;
 
 use parent 'HBase::Client::Error';
 
-package HBase::Client::Error::Region;
-
-use v5.14;
-use warnings;
-
-use parent 'HBase::Client::Error';
-
 sub exception_class {
 
     my ($self) = @_;
@@ -81,5 +74,12 @@ sub exception_class {
 }
 
 sub exception { $_[0]->cause }
+
+package HBase::Client::Error::Region;
+
+use v5.14;
+use warnings;
+
+use parent 'HBase::Client::Error';
 
 1;
