@@ -67,7 +67,7 @@ sub invalidate {
 
     undef $self->{meta_region};
 
-    return;
+    return $self->region;
 
 }
 

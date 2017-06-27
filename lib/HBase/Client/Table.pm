@@ -244,7 +244,7 @@ sub exec_service {
 
                     if ($fail) {
 
-                        die [ map { is_exception_error( $_->{error} ) ? () : { error => $_->{error}->exception, region => $_->{region}->name, server => $_->{region}->server } } @processed];
+                        die [ map { is_exception_error( $_->{error} ) ? { error => $_->{error}->exception, region => $_->{region}->name, server => $_->{region}->server } : () } @processed];
 
                     } elsif ($retry) {
 
