@@ -206,7 +206,7 @@ sub _query {
                 is_exception_error( $error ) && any { $error->exception_class eq $_ } @$invalidating_exceptions ){
 
                 # mark the region as invalid
-                $self->is_invalid = region_error( $error );
+                $self->{is_invalid} = region_error( $error );
 
                 # throw a retryable exception after invalidation completes
                 return $self->invalidate->finally( sub { die $self->is_invalid; } )

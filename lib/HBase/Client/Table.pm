@@ -321,7 +321,7 @@ sub invalidate {
 
     my ($self, $region) = @_;
 
-    return $self->cluster->load_regions( $self->name, $region->start, $region->stop )
+    return $self->cluster->load_regions( $self->name, $region->start, $region->end )
             ->then( sub {
 
                     my ($regions) = @_;
@@ -349,7 +349,7 @@ sub load {
 
     if ($regions) {
 
-        $self->_inflate( regions );
+        $self->_inflate( $regions );
 
         return $self->{loaded} = deferred->resolve;
 
@@ -429,7 +429,7 @@ sub _patch_cache {
 
     die 'Broken table cache' unless defined $start_position;
 
-    my $outdated_first = $self->{regions}->[$position];
+    my $outdated_first = $self->{regions}->[$start_position];
 
     unshift @$patch, HBase::Client::Region->dummy( { table_name => $self->name, start => $outdated_first->start, end => $start } ) if $outdated_first->start ne $start;
 
@@ -460,7 +460,7 @@ sub _fix_region_sequence {
 
     for my $region (@$regions){
 
-        next if $region->table_name ne $self->name || $region->is_invalide;
+        next if $region->table_name ne $self->name || $region->is_invalid;
 
         my $previous_region = $fixed[-1];
 
