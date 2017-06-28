@@ -8,6 +8,11 @@ use HBase::Client::Try qw( try retry done handle );
 
 use Promises qw( deferred );
 
+use HBase::Client::Error qw(
+        is_exception_error
+        is_region_error
+    );
+
 sub new {
 
     my ($class, %args) = @_;
@@ -86,35 +91,21 @@ sub next {
 
                     handle($error);
 
-                    if (exception($error) eq 'org.apache.hadoop.hbase.UnknownScannerException' ){
-                        # most likely we have our scanner timed out, so we retry requesting a new one
-                        undef $self->{scanner};
-
-                        retry( count => 3, cause => 'Got UnknownScannerException - most likely scanner timed out');
-
-                    } elsif (exception($error) eq 'org.apache.hadoop.hbase.NotServingRegionException'
-                        || exception($error) eq 'org.apache.hadoop.hbase.RegionMovedException'
-                        || exception($error) eq 'org.apache.hadoop.hbase.regionserver.RegionServerStoppedException'
-                        || exception($error) eq 'org.apache.hadoop.hbase.exceptions.RegionMovedException'){
-
+                    if (is_region_error($error)){
 
                         undef $self->{scanner};
 
-                        $self->{table}->invalidate;
+                        retry( delays => [0.25, 0.5, 1, 2, 4, 8, 10, 10], cause => $error );
 
-                        retry( delays => [0.25, 0.5, 1, 2, 4, 8, 10, 10], cause => exception($error) );
-
-                    } else {
-
-                        warn exception($error) eq 'unknown' ? $error : exception($error);
+                    } elsif (is_exception_error( $error ) && $error->exception_class eq 'org.apache.hadoop.hbase.UnknownScannerException'){
 
                         undef $self->{scanner};
 
-                        $self->{table}->invalidate;
-
-                        retry( delays => [0.25, 0.5, 1, 2, 4, 8, 10, 10], cause => exception($error) );
+                        retry( count => 6, cause => $error);
 
                     }
+
+                    warn sprintf( "Error scanning a region %s : %s \n", $self->{scanner}->region->name, $error);
 
                     die $error;
 

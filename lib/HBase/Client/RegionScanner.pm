@@ -56,6 +56,8 @@ sub next {
 
 }
 
+sub region { $_[0]->{region}; }
+
 sub close {
 
     #TODO send close signal to release the scanner

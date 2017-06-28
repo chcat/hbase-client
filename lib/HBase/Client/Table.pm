@@ -244,7 +244,23 @@ sub exec_service {
 
                     if ($fail) {
 
-                        die [ map { is_exception_error( $_->{error} ) ? { error => $_->{error}->exception, region => $_->{region}->name, server => $_->{region}->server } : () } @processed];
+                        my @errors;
+
+                        for my $holder (@processed){
+
+                            if (my $error = $holder->{error}) {
+
+                                push @errors, {
+                                        error   => is_exception_error($error) ? $error->exception : $error,
+                                        region  => $holder->{region}->name,
+                                        server  => $holder->{region}->server,
+                                    } unless is_region_error($error);
+
+                            }
+
+                        }
+
+                        die [ @errors ];
 
                     } elsif ($retry) {
 
