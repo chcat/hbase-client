@@ -62,6 +62,7 @@ use v5.14;
 use warnings;
 
 use parent 'HBase::Client::Error';
+use Ref::Util qw( is_blessed_ref );
 
 sub exception_class {
 
