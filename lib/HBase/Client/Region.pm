@@ -112,7 +112,7 @@ sub get_async {
             get    => $get,
         );
 
-    return $self->_query( $query );
+    return $self->_query( $query, 1 );
 
 }
 
@@ -126,7 +126,7 @@ sub mutate_async {
             nonce_group => $nonce_group,
         );
 
-    return $self->_query( $query );
+    return $self->_query( $query, 1 );
 
 }
 
@@ -142,7 +142,7 @@ sub scan_async {
             close_scanner  => $close_scanner,
         );
 
-    return $self->_query( $query );
+    return $self->_query( $query, 1 );
 
 }
 
@@ -180,7 +180,7 @@ GETTERS: {
 sub _specifier { region_specifier( $_[0]->name ) }
 
 sub _query {
-    my ($self, $query) = @_;
+    my ($self, $query, $invalidate_on_timeout) = @_;
 
     # If the region is already known to be invalid, throw a retryable exception after invalidation completes.
     # There are a few scenarios when we query an invalid region (like a dummy one, or a just invalid one that
@@ -202,7 +202,7 @@ sub _query {
 
             my ($error) = @_;
 
-            if (is_connection_error( $error ) ||
+            if (is_connection_error( $error ) || ( is_timeout_error( $error ) && $invalidate_on_timeout ) ||
                 is_exception_error( $error ) && any { $error->exception_class eq $_ } @$invalidating_exceptions ){
 
                 # mark the region as invalid

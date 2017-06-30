@@ -170,15 +170,10 @@ sub make_call {
 
     my $call_id = $self->{call_count}++;
 
-    my $timeout = $options->{timeout} // $self->{timeout};
-
-    AnyEvent->now_update; # updates AnyEvent's "current time" - otherwise the timer we gonna set up may fire too early
-
-    $self->{calls}->{$call_id} = {
+    my $call_entry = $self->{calls}->{$call_id} = {
             deferred         => $deferred,
             response_type    => $call->{response_type},
             stats            => $options->{stats},
-            timeout_watcher  => $timeout ? AnyEvent->timer( after => $timeout, cb => sub { $self->_timeout_call( $call_id ) } ) : undef,
         };
 
     my $param = $call->{param};
@@ -191,7 +186,17 @@ sub make_call {
 
     push @messages, $param if $param;
 
-    $self->_write_as_frame( $options->{stats}, @messages );
+    $self->_write_as_frame( sub {
+
+            if (my $timeout = $options->{timeout} // $self->{timeout}){
+
+                AnyEvent->now_update; # updates AnyEvent's "current time" - otherwise the timer we gonna set up may fire too early
+
+                $call_entry->{timeout_watcher} = AnyEvent->timer( after => $timeout, cb => sub { $self->_timeout_call( $call_id ) } );
+
+            }
+
+        }, $options->{stats}, @messages );
 
     return $deferred->promise;
 
@@ -203,7 +208,7 @@ sub _timeout_call {
 
     if ( my $call = delete $self->{calls}->{ $call_id } ){
 
-            $call->{deferred}->reject( timeout_error( 'RPC call timeout' ) );
+        $call->{deferred}->reject( timeout_error( 'RPC call timeout' ) );
 
     }
 
@@ -213,7 +218,7 @@ sub _timeout_call {
 
 sub _write_as_frame {
 
-    my ($self, $stats, @messages) = @_;
+    my ($self, $cb, $stats, @messages) = @_;
 
     my $frame_ref = join_delimited( [ map { defined $_ ? $_->encode : () } @messages ] );
 
@@ -221,7 +226,7 @@ sub _write_as_frame {
 
     substr($$frame_ref, 0, 0) = pack('N', $length);
 
-    $self->{connection}->write( sub { $stats->{written} = $length + 4; }, $frame_ref );
+    $self->{connection}->write( sub { $stats->{written} = $length + 4; $cb->() if $cb; }, $frame_ref );
 
 }
 
