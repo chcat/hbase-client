@@ -159,7 +159,7 @@ sub next_async {
 
     my $number_of_rows = $options->{number_of_rows} // $self->{number_of_rows};
 
-    return $self->_do_request_with_timeout(
+    return $self->{client}->_do_request_with_timeout(
             sub {
 
                 try {
