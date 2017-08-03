@@ -66,7 +66,7 @@ sub sync ($) {
 
 }
 
-sub timeout ($&) {
+sub timeout {
 
     my ($timeout, $sub) = @_;
 
