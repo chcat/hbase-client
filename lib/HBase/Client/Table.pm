@@ -119,17 +119,6 @@ sub handle_region_error { # TODO
 
 }
 
-sub diff {
-
-    my @in;
-    my @c;
-    my @out;
-
-
-
-}
-
-
 sub exec_service {
 
     my ($self, $call) = @_;

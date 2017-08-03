@@ -49,15 +49,42 @@ sub prepare_async {
 
 }
 
+sub _do_request_with_timeout {
+
+    my ($self, $sub, $timeout) = @_;
+
+    my $request_stats = $self->{stats}->{client_requests} //= {};
+
+    $request_stats->{submitted}++;
+
+    return timeout( $timeout, $sub )->then(sub {
+
+            $request_stats->{succeeded}++;
+
+            return @_;
+
+        }, sub {
+
+            $request_stats->{failed}++;
+
+            die @_;
+
+        });
+
+}
+
 sub get { sync shift->get_async( @_ ); }
 
 sub get_async {
 
     my ($self, $table, $get, $options) = @_;
 
-    my $timeout = $options->{timeout} // $self->{timeout};
-
-    return timeout $timeout, sub { $self->_cluster->table( $table )->get( $get ) };
+    return $self->_do_request_with_timeout(
+            sub {
+                $self->_cluster->table( $table )->get( $get );
+            },
+            $options->{timeout} // $self->{timeout}
+        );
 
 }
 
@@ -67,9 +94,12 @@ sub mutate_async {
 
     my ($self, $table, $mutation, $condition, $nonce_group, $options) = @_;
 
-    my $timeout = $options->{timeout} // $self->{timeout};
-
-    return timeout $timeout, sub { $self->_cluster->table( $table )->mutate( $mutation, $condition, $nonce_group ) };
+    return $self->_do_request_with_timeout(
+            sub {
+                $self->_cluster->table( $table )->mutate( $mutation, $condition, $nonce_group );
+            },
+            $options->{timeout} // $self->{timeout}
+        );
 
 }
 
@@ -79,9 +109,12 @@ sub exec_service_async {
 
     my ($self, $table, $call, $options) = @_;
 
-    my $timeout = $options->{timeout} // $self->{timeout};
-
-    return timeout $timeout, sub { $self->_cluster->table( $table )->exec_service( $call ) };
+    return $self->_do_request_with_timeout(
+            sub {
+                $self->_cluster->table( $table )->exec_service( $call );
+            },
+            $options->{timeout} // $self->{timeout}
+        );
 }
 
 sub scanner {
@@ -126,31 +159,38 @@ sub next_async {
 
     my $number_of_rows = $options->{number_of_rows} // $self->{number_of_rows};
 
-    return try {
+    return $self->_do_request_with_timeout(
+            sub {
 
-            return deferred->resolve([splice @$buffer, 0, $number_of_rows]) if $number_of_rows <= @$buffer;
+                try {
 
-            my $timeout = $options->{timeout} // $self->{timeout};
+                    return deferred->resolve([splice @$buffer, 0, $number_of_rows]) if $number_of_rows <= @$buffer;
 
-            timeout( $timeout, sub { $self->{scanner}->next( {number_of_rows => $number_of_rows} ) } )->then( sub {
+                    my $timeout = $options->{timeout} // $self->{timeout};
 
-                    my ($response) = @_;
+                    $self->{scanner}->next( {number_of_rows => $number_of_rows} )->then( sub {
 
-                    if ($response){
+                            my ($response) = @_;
 
-                        push @$buffer, @$response;
+                            if ($response){
 
-                        retry( cause => 'Got more rows' );
+                                push @$buffer, @$response;
 
-                    } else {
+                                retry( cause => 'Got more rows' );
 
-                        done($buffer);
+                            } else {
 
-                    }
+                                done($buffer);
 
-                } );
+                            }
 
-        }
+                        } );
+
+                };
+
+            },
+            $options->{timeout} // $self->{timeout}
+        );
 
 }
 
