@@ -130,6 +130,8 @@ sub next {
 
 sub _region_scanner {
 
+    my ($self) = @_;
+
     # adjusts the scan request to continue from the current start: this is needed to continue interrupted region scanning
     my $row = $self->{scan}->{start_row} = $self->{current_start};
 
