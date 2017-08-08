@@ -26,7 +26,9 @@ sub new {
 
 sub region {
 
-    my ($self) = @_;
+    my ($self, $row, $offset) = @_;
+
+    return deferred->resolve( undef ) if $offset; # there is a single region in the meta table
 
     return $self->{meta_region} //= try {
             $self->cluster->meta_server->then( sub {
@@ -46,7 +48,9 @@ sub region {
 
                     my ($error) = @_;
 
-                    retry(count => 3, cause => $error);
+                    warn sprintf("Error locating meta table holder: %s \n", $error);
+
+                    retry(count => 3, cause => 'Meta table locating error');
 
                 } );
         }->catch( sub {
@@ -81,9 +85,5 @@ sub load {
         } );
 
 }
-
-sub region_after { deferred->resolve( undef ); }
-
-sub region_before { deferred->resolve( undef ); }
 
 1;

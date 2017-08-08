@@ -174,7 +174,7 @@ sub _try_loop {
 
             } elsif ($error_type eq 'HBase::Client::Try::Retry'){
 
-                my $retry_attempt = $state->{count}++; # 0 ..
+                my $retry_attempt = $state->{counts}->{ $error->{cause} }++; # 0 ..
 
                 if (my $delays = $error->{delays}){
 
@@ -197,6 +197,8 @@ sub _try_loop {
                     }
 
                 }
+
+                warn 'Retry limit reached :'. (join ' ', %{$state->{counts}});
 
                 $error = $error->{cause};
 

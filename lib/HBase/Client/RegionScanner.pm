@@ -40,10 +40,14 @@ sub next {
 
                 unless ($options->{dont_filter_by_region_key_space}){
 
+                    my $results = $response->get_results_list // [];
+
                     my @filtered_results = map {
                             my $row = $_->get_cell(0)->get_row;
                             $row ge $region->start && ( $row lt $region->end || $region->end eq '') ? $_ : ();
-                        } @{$response->get_results_list // []};
+                        } @$results;
+
+                    warn sprintf( "Region %s contains data beyond its end\n", $region->name ) if @filtered_results != @$results;
 
                     $response->set_results_list( \@filtered_results );
 
@@ -60,7 +64,7 @@ sub region { $_[0]->{region}; }
 
 sub close {
 
-    #TODO send close signal to release the scanner
+    #TODO send close signal to release the server-side scanner
 
 }
 

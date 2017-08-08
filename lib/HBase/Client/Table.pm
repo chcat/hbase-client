@@ -107,7 +107,7 @@ sub handle_region_error { # TODO
 
     if ($region && is_region_error($error)){
 
-        retry( delays => [0.25, 0.5, 1, 2, 4, 8, 10, 10], cause => $error );
+        retry( delays => [0.25, 0.5, 1, 2, 4, 8, 10, 10], cause => 'Region error' );
 
     } else {
 
@@ -272,49 +272,21 @@ sub exec_service {
 
 sub region {
 
-    my ($self, $row) = @_;
+    my ($self, $row, $offset) = @_;
 
     return $self->load->then( sub {
 
             if ( defined (my $position_in_cache = $self->_region_cache_position_lookup( $row )) ){
 
-                return $self->{regions}->[$position_in_cache];
+                $position_in_cache += ($offset // 0);
+
+                my $regions = $self->{regions};
+
+                return ($position_in_cache >= 0 && $position_in_cache <= $#$regions) ? $regions->[$position_in_cache] : deferred->resolve( undef );
 
             } else {
 
-                die sprintf("Table %s cache currupted: was looking for a region for %s \n", $self->name, $row);
-
-            }
-
-        } );
-
-}
-
-sub region_after {
-
-    my ($self, $region) = @_;
-
-    return deferred->resolve( undef ) if $region->end eq '';
-
-    return $self->region( $region->end );
-
-}
-
-sub region_before {
-
-    my ($self, $region) = @_;
-
-    return deferred->resolve( undef ) if $region->start eq '';
-
-    return $self->load->then( sub {
-
-            if ( defined (my $position_in_cache = $self->_region_cache_position_lookup( $region->start )) ){
-
-                return $position_in_cache > 0 ? $self->{regions}->[$position_in_cache-1] : undef;
-
-            } else {
-
-                die sprintf("Table %s cache is currupted: was looking for a region before %s \n", $self->name, $region);
+                die sprintf("Table %s cache currupted: was looking for a region for row %s and delta %s \n", $self->name, $row, $offset);
 
             }
 
