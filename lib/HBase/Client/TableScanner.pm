@@ -21,7 +21,7 @@ sub new {
             table               => $args{table},
             scan                => $args{scan},
             number_of_rows      => $args{number_of_rows} // 1000,
-            current_start       => $args{scan}->{start_row} // '',
+            current_start       => $args{scan}->{start_row} // ($args{scan}->{reversed} ? undef : ''),
             stop_row            => $args{scan}->{stop_row},
             reversed            => $args{scan}->{reversed},
             next_region         => 0,
@@ -145,7 +145,7 @@ sub _region_scanner {
                 # 2) stop_row is given and we do normal scan and the region we gonna scan starts after the stop row or at it (cause stop_row is being excluded anyway)
                 # 3) stop_row is given and we do reverse scan and the region we gonna scan ends at of before the stop row
 
-                return undef if !$region || ($stop_row && ($reversed && $region->end le $stop_row || !$reversed && $region->start ge $stop_row));
+                return undef if !$region || ($stop_row && ($reversed && $region->end ne '' && $region->end le $stop_row || !$reversed && $region->start ge $stop_row));
 
                 return $region->scanner( $self->{scan}, $self->{number_of_rows} );
 

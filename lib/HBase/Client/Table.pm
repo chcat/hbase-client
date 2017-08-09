@@ -276,11 +276,13 @@ sub region {
 
     return $self->load->then( sub {
 
+            my $regions = $self->{regions};
+
+            return $regions->[-1] unless defined $row;
+
             if ( defined (my $position_in_cache = $self->_region_cache_position_lookup( $row )) ){
 
                 $position_in_cache += ($offset // 0);
-
-                my $regions = $self->{regions};
 
                 return ($position_in_cache >= 0 && $position_in_cache <= $#$regions) ? $regions->[$position_in_cache] : deferred->resolve( undef );
 

@@ -24,6 +24,8 @@ sub next {
 
     my $number_of_rows = $options->{number_of_rows} // $self->{number_of_rows};
 
+    $scan->{start_row} = $scan->{reversed} ? $region->end : $region->start unless $options->{dont_filter_by_region_key_space} || defined $scanner_id;
+
     return $region->scan_async( $scan, $scanner_id, $number_of_rows, $next_call_seq)
         ->then( sub {
 
