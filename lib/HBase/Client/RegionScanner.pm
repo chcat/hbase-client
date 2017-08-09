@@ -24,6 +24,24 @@ sub next {
 
     my $number_of_rows = $options->{number_of_rows} // $self->{number_of_rows};
 
+    unless ($options->{dont_filter_by_region_key_space} || defined $scanner_id) {
+
+        if (defined $scan->{start_row}){
+
+            if ($scan->{reversed}){
+
+                $scan->{start_row} = $region->end if $region->end ne '' && $region->end lt $scan->{start_row};
+
+            } else {
+
+                $scan->{start_row} = $region->start if $region->start gt $scan->{start_row};
+
+            }
+
+        }
+
+    }
+
     $scan->{start_row} = $scan->{reversed} ? $region->end : $region->start unless $options->{dont_filter_by_region_key_space} || defined $scanner_id;
 
     return $region->scan_async( $scan, $scanner_id, $number_of_rows, $next_call_seq)
