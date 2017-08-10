@@ -25,7 +25,7 @@ sub next {
     my $number_of_rows = $options->{number_of_rows} // $self->{number_of_rows};
 
     unless ($options->{dont_filter_by_region_key_space} || defined $scanner_id) {
-
+        # adjust scan start to exclude rows beyond the region interval
         if (defined $scan->{start_row}){
 
             if ($scan->{reversed}){
@@ -41,8 +41,6 @@ sub next {
         }
 
     }
-
-    $scan->{start_row} = $scan->{reversed} ? $region->end : $region->start unless $options->{dont_filter_by_region_key_space} || defined $scanner_id;
 
     return $region->scan_async( $scan, $scanner_id, $number_of_rows, $next_call_seq)
         ->then( sub {
@@ -67,7 +65,7 @@ sub next {
                             $row ge $region->start && ( $row lt $region->end || $region->end eq '') ? $_ : ();
                         } @$results;
 
-                    warn sprintf( "Region %s contains data beyond its end\n", $region->name ) if @filtered_results != @$results;
+                    warn sprintf( "Region %s contains data beyond its key interval\n", $region->name ) if @filtered_results != @$results;
 
                     $response->set_results_list( \@filtered_results );
 
