@@ -132,12 +132,12 @@ sub _region_scanner {
 
     my ($self) = @_;
 
-    # adjusts the scan request to continue from the current start: this is needed to continue interrupted region scanning
-    my $row = $self->{scan}->{start_row} = $self->{current_start};
+    # adjusts the scan start: this is needed to continue interrupted region scanning
+    $self->{scan}->{start_row} = $self->{current_start} // '';
 
     my ($reversed, $stop_row) = @$self{ qw ( reversed stop_row ) };
 
-    return $self->{scanner} //= $self->{table}->region( $row, $self->{next_region} )->then( sub {
+    return $self->{scanner} //= $self->{table}->region( $self->{current_start}, $self->{next_region} )->then( sub {
                 my ($region) = @_;
 
                 # don't create a scanner if
