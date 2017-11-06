@@ -9,9 +9,9 @@ use HBase::Client::Try qw( sync timeout );
 use HBase::Client::Cluster;
 use HBase::Client::NodePool;
 use HBase::Client::ZookeeperMetaHolderLocator;
-
 use HBase::Client::RequestExecutionContext;
 
+use Time::HiRes qw(time);
 
 sub new {
 
@@ -49,23 +49,41 @@ sub prepare_async {
 
 }
 
+sub pull_stats {
+
+    my ($self) = @_;
+
+    return delete $self->{stats};
+
+}
+
 sub _do_request_with_timeout {
 
-    my ($self, $sub, $timeout) = @_;
+    my ($self, $type, $sub, $timeout) = @_;
 
     my $request_stats = $self->{stats}->{client_requests} //= {};
 
-    $request_stats->{submitted}++;
+    $request_stats->{$type}->{submitted}++;
+
+    my $start = time;
 
     return timeout( $timeout, $sub )->then(sub {
 
-            $request_stats->{succeeded}++;
+            my $stats = $request_stats->{$type} //= {};
+
+            $stats->{succeeded}++;
+
+            my $latency = int ((time - $start)*1000);
+
+            $stats->{latency_total} += $latency;
+
+            $stats->{latency_average} = int ($stats->{latency_total} / $stats->{succeeded});
 
             return @_;
 
         }, sub {
 
-            $request_stats->{failed}++;
+            $request_stats->{$type}->{failed}++;
 
             die @_;
 
@@ -80,6 +98,7 @@ sub get_async {
     my ($self, $table, $get, $options) = @_;
 
     return $self->_do_request_with_timeout(
+            'get',
             sub {
                 $self->_cluster->table( $table )->get( $get );
             },
@@ -95,6 +114,7 @@ sub mutate_async {
     my ($self, $table, $mutation, $condition, $nonce_group, $options) = @_;
 
     return $self->_do_request_with_timeout(
+            'mutate',
             sub {
                 $self->_cluster->table( $table )->mutate( $mutation, $condition, $nonce_group );
             },
@@ -110,6 +130,7 @@ sub exec_service_async {
     my ($self, $table, $call, $options) = @_;
 
     return $self->_do_request_with_timeout(
+            'exec',
             sub {
                 $self->_cluster->table( $table )->exec_service( $call );
             },
@@ -160,6 +181,7 @@ sub next_async {
     my $number_of_rows = $options->{number_of_rows} // $self->{number_of_rows};
 
     return $self->{client}->_do_request_with_timeout(
+            'scan',
             sub {
 
                 try {

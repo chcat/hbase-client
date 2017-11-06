@@ -15,6 +15,8 @@ sub new {
 
 }
 
+sub pull_stats { shift->{client}->pull_stats( @_ ); }
+
 sub prepare { sync shift->prepare_async( @_ ); }
 
 sub prepare_async {
