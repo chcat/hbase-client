@@ -1,2 +1,2 @@
 # hbase-client
-An async Perl implementation of an HBase RPC client
+An async HBase (protobuf) client implemented in Perl
