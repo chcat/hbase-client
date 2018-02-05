@@ -15,8 +15,6 @@ sub new {
 
 }
 
-sub pull_stats { shift->{client}->pull_stats( @_ ); }
-
 sub prepare { sync shift->prepare_async( @_ ); }
 
 sub prepare_async {
@@ -97,7 +95,7 @@ sub _delete_single_async {
     my ($self, $table, $row, $params, $options) = @_;
 
     my $mutation = {
-            row           => $row->{row},
+            row           => $row,
             mutate_type   => HBase::Client::Proto::MutationProto::MutationType::DELETE,
         };
 
@@ -133,6 +131,8 @@ sub _put_single_async {
             mutate_type   => HBase::Client::Proto::MutationProto::MutationType::PUT,
             column_value  => $self->_parse_column_value_array_proto( $row ),
         };
+
+    $mutation->{timestamp} = $params->{timestamp} if defined $params->{timestamp};
 
     return $self->{client}->mutate_async($table, $mutation, undef, undef, $options);
 }

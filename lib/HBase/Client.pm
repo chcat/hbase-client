@@ -49,41 +49,25 @@ sub prepare_async {
 
 }
 
-sub pull_stats {
-
-    my ($self) = @_;
-
-    return delete $self->{stats};
-
-}
-
 sub _do_request_with_timeout {
 
-    my ($self, $type, $sub, $timeout) = @_;
+    my ($self, $sub, $timeout, $stats) = @_;
 
-    my $request_stats = $self->{stats}->{client_requests} //= {};
-
-    $request_stats->{$type}->{submitted}++;
-
-    my $start = time;
+    my $start_time = time;
 
     return timeout( $timeout, $sub )->then(sub {
 
-            my $stats = $request_stats->{$type} //= {};
+            $stats->{succeeded} = 1;
 
-            $stats->{succeeded}++;
-
-            my $latency = int ((time - $start)*1000);
-
-            $stats->{latency_total} += $latency;
-
-            $stats->{latency_average} = int ($stats->{latency_total} / $stats->{succeeded});
+            $stats->{latency} = int ((time - $start_time)*1000);
 
             return @_;
 
         }, sub {
 
-            $request_stats->{$type}->{failed}++;
+            $stats->{succeeded} = 0;
+
+            $stats->{latency} = int ((time - $start_time)*1000);
 
             die @_;
 
@@ -98,11 +82,11 @@ sub get_async {
     my ($self, $table, $get, $options) = @_;
 
     return $self->_do_request_with_timeout(
-            'get',
             sub {
                 $self->_cluster->table( $table )->get( $get );
             },
-            $options->{timeout} // $self->{timeout}
+            $options->{timeout} // $self->{timeout},
+            $options->{stats} // {},
         );
 
 }
@@ -114,11 +98,11 @@ sub mutate_async {
     my ($self, $table, $mutation, $condition, $nonce_group, $options) = @_;
 
     return $self->_do_request_with_timeout(
-            'mutate',
             sub {
                 $self->_cluster->table( $table )->mutate( $mutation, $condition, $nonce_group );
             },
-            $options->{timeout} // $self->{timeout}
+            $options->{timeout} // $self->{timeout},
+            $options->{stats} // {},
         );
 
 }
@@ -130,11 +114,11 @@ sub exec_service_async {
     my ($self, $table, $call, $options) = @_;
 
     return $self->_do_request_with_timeout(
-            'exec',
             sub {
                 $self->_cluster->table( $table )->exec_service( $call );
             },
-            $options->{timeout} // $self->{timeout}
+            $options->{timeout} // $self->{timeout},
+            $options->{stats} // {},
         );
 }
 
@@ -176,12 +160,13 @@ sub next_async {
 
     my ($self, $options) = @_;
 
+    return deferred->resolve(undef) if $self->{closed};
+
     my $buffer = $self->{buffer};
 
     my $number_of_rows = $options->{number_of_rows} // $self->{number_of_rows};
 
     return $self->{client}->_do_request_with_timeout(
-            'scan',
             sub {
 
                 try {
@@ -202,7 +187,9 @@ sub next_async {
 
                             } else {
 
-                                done($buffer);
+                                $self->{closed} = 1;
+
+                                done(@$buffer ? $buffer : undef);
 
                             }
 
@@ -211,7 +198,8 @@ sub next_async {
                 };
 
             },
-            $options->{timeout} // $self->{timeout}
+            $options->{timeout} // $self->{timeout},
+            $options->{stats} // {},
         );
 
 }
